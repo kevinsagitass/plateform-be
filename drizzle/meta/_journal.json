@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1778656077346,
+      "tag": "0000_fat_barracuda",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1778658616645,
+      "tag": "0001_zippy_frank_castle",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778659607769,
+      "tag": "0002_bizarre_nocturne",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1778664776087,
+      "tag": "0003_dashing_iron_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1778664843168,
+      "tag": "0004_clean_nick_fury",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1778667278488,
+      "tag": "0005_nifty_stone_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1778668433342,
+      "tag": "0006_useful_sabra",
+      "breakpoints": true
+    }
+  ]
+}
