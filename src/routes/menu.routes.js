@@ -4,18 +4,49 @@ import {
   addMenu,
   deleteMenu,
   getAllMenu,
+  getAllMenuByCategories,
   getAllMenuCategories,
   updateMenu,
 } from "../controllers/menu.controller.js";
-import { isAuthenticated } from "../middlewares/auth.middleware.js";
+import {
+  authorizeTenantAccess,
+  isAuthenticated,
+} from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 router.use(isAuthenticated);
 
-router.get("/categories", getAllMenuCategories);
-router.get("/", getAllMenu);
-router.post("/", upload.single("image"), addMenu);
-router.put("/", upload.single("image"), updateMenu);
-router.delete("/:id", deleteMenu);
+router.get(
+  "/categories/:tenantId",
+  authorizeTenantAccess((req) => req.params.tenantId),
+  getAllMenuCategories,
+);
+router.get(
+  "/:tenantId",
+  authorizeTenantAccess((req) => req.params.tenantId),
+  getAllMenu,
+);
+router.get(
+  "/:tenantId/categories",
+  authorizeTenantAccess((req) => req.params.tenantId),
+  getAllMenuByCategories,
+);
+router.post(
+  "/",
+  upload.single("image"),
+  authorizeTenantAccess((req) => req.body.tenantId),
+  addMenu,
+);
+router.put(
+  "/:id",
+  upload.single("image"),
+  authorizeTenantAccess((req) => req.body.tenantId),
+  updateMenu,
+);
+router.delete(
+  "/:tenantId/:id",
+  authorizeTenantAccess((req) => req.params.tenantId),
+  deleteMenu,
+);
 
 export default router;

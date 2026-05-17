@@ -10,11 +10,22 @@ export const registerUserData = async (userData) => {
       .from(users)
       .where(eq(users.username, userData.username));
 
+    const [existingEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, userData.email));
+
     if (existingUsername) {
       throw {
         status: 400,
         dataStatus: "failed",
         message: "Username sudah digunakan",
+      };
+    } else if (existingEmail) {
+      throw {
+        status: 400,
+        dataStatus: "failed",
+        message: "Email sudah digunakan",
       };
     }
 
@@ -28,8 +39,6 @@ export const registerUserData = async (userData) => {
       password: hashedPassword,
     };
 
-    console.log(newUserData);
-
     await db.insert(users).values(newUserData);
 
     const [newUser] = await db
@@ -42,7 +51,9 @@ export const registerUserData = async (userData) => {
       .from(users)
       .where(eq(users.id, id));
 
-    return newUser;
+    return {
+      ...newUser,
+    };
   } catch (err) {
     console.log(err);
     throw {

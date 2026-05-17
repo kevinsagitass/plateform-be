@@ -7,9 +7,34 @@ import {
   boolean,
   double,
   mysqlEnum,
+  uniqueIndex,
+  time,
 } from "drizzle-orm/mysql-core";
 
-export const paymentStatusEnum = ["pending", "paid"];
+export const auditColumns = {
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: varchar("created_by", { length: 36 }).notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+  updatedBy: varchar("updated_by", { length: 36 }),
+};
+
+export const subscriptions = mysqlTable("subscriptions", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  organizationId: varchar("organization_id", { length: 36 })
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+  plan: mysqlEnum("plan", ["FREE", "BASIC", "PRO"]).notNull(),
+  status: mysqlEnum("status", ["ACTIVE", "EXPIRED", "CANCELED"]).notNull(),
+  startDate: timestamp("start_date").defaultNow(),
+  endDate: timestamp("end_date"),
+  ...auditColumns,
+});
 
 export const users = mysqlTable("users", {
   id: varchar("id", { length: 36 })
@@ -17,22 +42,27 @@ export const users = mysqlTable("users", {
     .$defaultFn(() => crypto.randomUUID()),
   username: varchar("username", { length: 255 }).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at"),
+  ...auditColumns,
 });
 
-export const tenants = mysqlTable("tenants", {
-  id: varchar("id", { length: 36 })
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  tenantName: varchar("tenant_name", { length: 255 }).notNull(),
-  location: varchar("location", { length: 255 }).notNull(),
-  isActive: boolean("is_active").default(true),
+export const organizationUsers = mysqlTable("organization_users", {
+  userId: varchar("user_id", { length: 36 })
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+  organizationId: varchar("organization_id", { length: 36 })
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+  role: mysqlEnum("role", ["OWNER", "ADMIN"]).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const userTenants = mysqlTable("user_tenants", {
+export const tenantUsers = mysqlTable("tenant_users", {
   userId: varchar("user_id", { length: 36 })
     .notNull()
     .references(() => users.id, {
@@ -43,22 +73,78 @@ export const userTenants = mysqlTable("user_tenants", {
     .references(() => tenants.id, {
       onDelete: "cascade",
     }),
+  role: mysqlEnum("role", ["STORE_MANAGER", "CASHIER", "COOK"]).notNull(),
+  ...auditColumns,
 });
 
-export const menuCategories = mysqlTable("menu_categories", {
+export const organizations = mysqlTable("organizations", {
   id: varchar("id", { length: 36 })
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  categoryName: varchar("category_name", { length: 255 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  subscriptionStatus: mysqlEnum("subscription_status", [
+    "ACTIVE",
+    "TRIAL",
+    "EXPIRED",
+  ]).default("TRIAL"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tenants = mysqlTable("tenants", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  organizationId: varchar("organization_id", { length: 36 })
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+  tenantName: varchar("tenant_name", { length: 255 }).notNull(),
+  location: varchar("location", { length: 255 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  ...auditColumns,
+});
+
+export const tenantWorkHours = mysqlTable("tenant_work_hours", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   tenantId: varchar("tenant_id", { length: 36 })
     .notNull()
     .references(() => tenants.id, {
       onDelete: "cascade",
     }),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at"),
+  dayOfMonth: int("day_of_month").notNull(),
+  openHour: time("open_hour").notNull(),
+  closeHour: time("close_hour").notNull(),
+  isActive: boolean("is_active").default(true),
+  ...auditColumns,
 });
+
+export const menuCategories = mysqlTable(
+  "menu_categories",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    categoryName: varchar("category_name", { length: 255 }).notNull(),
+    tenantId: varchar("tenant_id", { length: 36 })
+      .notNull()
+      .references(() => tenants.id, {
+        onDelete: "cascade",
+      }),
+    orderNumber: int("order_number").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    ...auditColumns,
+  },
+  (table) => ({
+    tenantOrderUnique: uniqueIndex("tenant_order_unique").on(
+      table.tenantId,
+      table.orderNumber,
+    ),
+  }),
+);
 
 export const menus = mysqlTable("menus", {
   id: varchar("id", { length: 36 })
@@ -81,8 +167,37 @@ export const menus = mysqlTable("menus", {
   discount: double("discount").notNull(),
   isAvailable: boolean("is_available").notNull().default(true),
   isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at"),
+  ...auditColumns,
+});
+
+export const addonGroups = mysqlTable("addon_groups", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  menuId: varchar("menu_id", { length: 36 })
+    .notNull()
+    .references(() => menus.id, {
+      onDelete: "cascade",
+    }),
+  name: varchar("name", { length: 255 }).notNull(),
+  isRequired: boolean("is_required").notNull().default(false),
+  maxSelection: int("max_selection").notNull().default(1),
+  ...auditColumns,
+});
+
+export const addons = mysqlTable("addons", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  addonGroupId: varchar("addon_group_id", { length: 36 })
+    .notNull()
+    .references(() => addonGroups.id, {
+      onDelete: "cascade",
+    }),
+  name: varchar("name", { length: 255 }).notNull(),
+  price: double("price").notNull().default(0),
+  isAvailable: boolean("is_available").notNull().default(true),
+  ...auditColumns,
 });
 
 export const tables = mysqlTable("tables", {
@@ -95,8 +210,7 @@ export const tables = mysqlTable("tables", {
     .references(() => tenants.id, {
       onDelete: "cascade",
     }),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at"),
+  ...auditColumns,
 });
 
 export const sessions = mysqlTable("sessions", {
@@ -116,7 +230,7 @@ export const sessions = mysqlTable("sessions", {
   trxDate: date("trx_date").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
-  finishedAt: timestamp("updated_at"),
+  finishedAt: timestamp("finished_at"),
 });
 
 export const orders = mysqlTable("orders", {
@@ -130,9 +244,14 @@ export const orders = mysqlTable("orders", {
     }),
   total_amount: int("total_amount").notNull(),
   paymentUrl: varchar("payment_url", { length: 255 }).notNull(),
-  paymentStatus: mysqlEnum("payment_status", paymentStatusEnum)
+  paymentStatus: mysqlEnum("payment_status", [
+    "PENDING",
+    "PAID",
+    "EXPIRED",
+    "CANCELLED",
+  ])
     .notNull()
-    .default("pending"),
+    .default("PENDING"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

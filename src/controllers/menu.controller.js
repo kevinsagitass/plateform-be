@@ -9,12 +9,14 @@ import {
   deleteMenuData,
   getAllMenuCategoriesData,
   getAllMenuData,
+  getAllMenuByCategoriesData,
   updateMenuData,
 } from "../services/menu.service.js";
 
 export const getAllMenuCategories = async (req, res) => {
   try {
-    const menuCategories = await getAllMenuCategoriesData();
+    const { tenantId } = req.params;
+    const menuCategories = await getAllMenuCategoriesData(tenantId);
 
     return successResponse(res, 200, "success", menuCategories);
   } catch (err) {
@@ -24,10 +26,12 @@ export const getAllMenuCategories = async (req, res) => {
 
 export const getAllMenu = async (req, res) => {
   try {
+    const { tenantId } = req.params;
     const { search, categoryId, page, limit } = req.query;
 
     const menuParam = searchMenuSchema.safeParse({
       search,
+      tenantId,
       categoryId,
       page,
       limit,
@@ -53,6 +57,18 @@ export const getAllMenu = async (req, res) => {
   }
 };
 
+export const getAllMenuByCategories = async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+
+    const menus = await getAllMenuByCategoriesData(tenantId);
+
+    return successResponse(res, 200, "success", menus);
+  } catch (err) {
+    throw err;
+  }
+};
+
 export const addMenu = async (req, res) => {
   try {
     if (!req.file) {
@@ -64,8 +80,11 @@ export const addMenu = async (req, res) => {
 
     const imagePath = req.file.path.replace(/\\/g, "/");
 
+    const addons = JSON.parse(req.body.addons);
+
     const menuParam = addMenuSchema.safeParse({
       ...req.body,
+      addons,
       imagePath,
     });
 
@@ -95,8 +114,14 @@ export const updateMenu = async (req, res) => {
       ? req.file.path.replace(/\\/g, "/")
       : undefined;
 
+    const addons = JSON.parse(req.body.addons);
+
+    const { id } = req.params;
+
     const menuParam = updateMenuSchema.safeParse({
+      id,
       ...req.body,
+      addons: addons ? addons : undefined,
       newImagePath,
     });
 
