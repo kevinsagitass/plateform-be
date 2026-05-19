@@ -29,7 +29,7 @@ export const subscriptions = mysqlTable("subscriptions", {
     .references(() => organizations.id, {
       onDelete: "cascade",
     }),
-  plan: mysqlEnum("plan", ["FREE", "BASIC", "PRO"]).notNull(),
+  plan: mysqlEnum("plan", ["BASIC", "PRO", "ENTERPRISE"]).notNull(),
   status: mysqlEnum("status", ["ACTIVE", "EXPIRED", "CANCELED"]).notNull(),
   startDate: timestamp("start_date").defaultNow(),
   endDate: timestamp("end_date"),
@@ -82,7 +82,7 @@ export const organizationUsers = mysqlTable("organization_users", {
     .references(() => organizations.id, {
       onDelete: "cascade",
     }),
-  role: mysqlEnum("role", ["OWNER", "ADMIN"]).notNull(),
+  role: mysqlEnum("role", ["OWNER", "ADMIN", "STAFF"]).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

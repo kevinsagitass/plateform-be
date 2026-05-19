@@ -77,7 +77,7 @@ export const addOrganizationData = async (data) => {
     await db.insert(subscriptions).values({
       id: subscriptionId,
       organizationId: organizationId,
-      plan: "FREE",
+      plan: "BASIC",
       status: "ACTIVE",
       endDate: addDays(new Date(), 30),
       createdBy: data.user.username,

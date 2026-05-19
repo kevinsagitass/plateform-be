@@ -37,6 +37,7 @@ export const registerUserData = async (userData) => {
       ...userData,
       id,
       password: hashedPassword,
+      createdBy: "SYSTEM",
     };
 
     await db.insert(users).values(newUserData);

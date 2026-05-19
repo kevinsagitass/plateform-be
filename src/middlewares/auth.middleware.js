@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
 import { organizationUsers, tenants, tenantUsers } from "../db/schema.js";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 export const isAuthenticated = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -55,29 +55,15 @@ export const authorizeOrganizationAccess =
         });
       }
 
-      if (roles.length !== 0) {
-        const hasOrganizationRole = user.organizationRoles?.some((orgRole) =>
-          roles.includes(orgRole.role)
-        );
-
-        if (!hasOrganizationRole) {
-          return res.status(403).json({
-            status: "failed",
-            message: "Forbidden",
-          });
-        }
-      }
-
       const access = await db
         .select()
         .from(organizationUsers)
         .where(
           and(
             eq(organizationUsers.userId, user.id),
-            eq(organizationUsers.organizationId, organizationId)
-          )
-        )
-        .limit(1);
+            eq(organizationUsers.organizationId, organizationId),
+          ),
+        );
 
       if (access.length === 0) {
         if (req.file) {
@@ -88,6 +74,19 @@ export const authorizeOrganizationAccess =
           status: "failed",
           message: "Forbidden",
         });
+      }
+
+      if (roles.length !== 0) {
+        const hasOrganizationAccess = access?.some((acc) =>
+          roles.includes(acc.role),
+        );
+
+        if (!hasOrganizationAccess) {
+          return res.status(403).json({
+            status: "failed",
+            message: "Forbidden",
+          });
+        }
       }
 
       next();
@@ -122,16 +121,38 @@ export const authorizeTenantAccess =
         });
       }
 
-      if (roles.length !== 0) {
-        const hasOrganizationRole = user.organizationRoles?.some((orgRole) =>
-          roles.includes(orgRole.role)
+      const access = await db
+        .select()
+        .from(tenantUsers)
+        .where(
+          and(
+            eq(tenantUsers.userId, user.id),
+            eq(tenantUsers.tenantId, tenantId),
+          ),
         );
 
-        const hasTenantRole = user.tenantRoles?.some((tenantRole) =>
-          roles.includes(tenantRole.role)
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+
+      const orgAccess = await db
+        .select()
+        .from(organizationUsers)
+        .where(
+          and(
+            eq(organizationUsers.userId, user.id),
+            eq(organizationUsers.organizationId, tenant.organizationId),
+            ne(organizationUsers.role, "STAFF"),
+          ),
         );
 
-        if (!hasOrganizationRole && !hasTenantRole) {
+      if (access.length === 0) {
+        if (orgAccess.length === 0) {
+          if (req.file) {
+            await fs.unlink(req.file.path);
+          }
+
           return res.status(403).json({
             status: "failed",
             message: "Forbidden",
@@ -139,39 +160,16 @@ export const authorizeTenantAccess =
         }
       }
 
-      const access = await db
-        .select()
-        .from(tenantUsers)
-        .where(
-          and(
-            eq(tenantUsers.userId, user.id),
-            eq(tenantUsers.tenantId, tenantId)
-          )
-        )
-        .limit(1);
+      if (roles.length !== 0) {
+        const hasOrganizationRole = orgAccess?.some((orgRole) =>
+          roles.includes(orgRole.role),
+        );
 
-      if (access.length === 0) {
-        const [tenant] = await db
-          .select()
-          .from(tenants)
-          .where(eq(tenants.id, tenantId));
+        const hasTenantRole = access?.some((tenantRole) =>
+          roles.includes(tenantRole.role),
+        );
 
-        const orgAccess = await db
-          .select()
-          .from(organizationUsers)
-          .where(
-            and(
-              eq(organizationUsers.userId, user.id),
-              eq(organizationUsers.organizationId, tenant.organizationId)
-            )
-          )
-          .limit(1);
-
-        if (orgAccess.length === 0) {
-          if (req.file) {
-            await fs.unlink(req.file.path);
-          }
-
+        if ((orgAccess?.length > 0 && !hasOrganizationRole) || !hasTenantRole) {
           return res.status(403).json({
             status: "failed",
             message: "Forbidden",

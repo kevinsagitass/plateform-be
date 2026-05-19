@@ -4,13 +4,14 @@ import {
   tenantWorkHours,
   tenantUsers,
   organizations,
+  organizationUsers,
 } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 
 export const getAllUserTenantsData = async (user) => {
   try {
     const tenantsData = await db
-      .select({
+      .selectDistinct({
         tenantId: tenants.id,
         tenantName: tenants.tenantName,
         tenantLocation: tenants.location,
@@ -20,8 +21,10 @@ export const getAllUserTenantsData = async (user) => {
           organizationId: organizations.id,
           name: organizations.name,
         },
+        createdAt: tenants.createdAt
       })
-      .from(tenantUsers)
+      .from(organizationUsers)
+      .leftJoin(tenantUsers, eq(organizationUsers.userId, tenantUsers.userId))
       .leftJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
       .leftJoin(organizations, eq(tenants.organizationId, organizations.id))
       .where(eq(tenantUsers.userId, user.id))
@@ -98,7 +101,7 @@ export const addTenantData = async (tenantData) => {
             openHour: wh.openHour,
             closeHour: wh.closeHour,
             createdBy: tenantData.user.username,
-          }))
+          })),
         );
       }
     });
@@ -129,7 +132,9 @@ export const addTenantData = async (tenantData) => {
 export const updateTenantData = async (tenantData) => {
   try {
     const updateData = Object.fromEntries(
-      Object.entries(tenantData).filter(([_, v]) => v !== undefined && v !== "")
+      Object.entries(tenantData).filter(
+        ([_, v]) => v !== undefined && v !== "",
+      ),
     );
 
     await db.transaction(async (tx) => {
@@ -142,7 +147,9 @@ export const updateTenantData = async (tenantData) => {
         await Promise.all(
           tenantData.tenantWorkHours.map((wh) => {
             const updateWorkHourData = Object.fromEntries(
-              Object.entries(wh).filter(([_, v]) => v !== undefined && v !== "")
+              Object.entries(wh).filter(
+                ([_, v]) => v !== undefined && v !== "",
+              ),
             );
 
             return tx
@@ -152,7 +159,7 @@ export const updateTenantData = async (tenantData) => {
                 updatedBy: tenantData.user.username,
               })
               .where(eq(tenantWorkHours.id, wh.tenantWorkHourId));
-          })
+          }),
         );
       }
     });
