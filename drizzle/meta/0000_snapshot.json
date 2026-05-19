@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "25dd6cba-ef32-44f5-807e-0d3bf1a8fbb8",
+  "id": "46ff5f70-2074-42df-a525-8acd781d7603",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "addon_groups": {
@@ -577,7 +577,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'pending'"
+          "default": "'PENDING'"
         },
         "created_at": {
           "name": "created_at",
@@ -698,14 +698,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "subscription_status": {
-          "name": "subscription_status",
-          "type": "enum('ACTIVE','TRIAL','EXPIRED')",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "'TRIAL'"
-        },
         "is_active": {
           "name": "is_active",
           "type": "boolean",
@@ -783,8 +775,8 @@
           "autoincrement": false,
           "default": "(now())"
         },
-        "updated_at": {
-          "name": "updated_at",
+        "finished_at": {
+          "name": "finished_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false,

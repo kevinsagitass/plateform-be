@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
-import { tenantUsers } from "../db/schema.js";
+import { organizationUsers, tenants, tenantUsers } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 
 export const isAuthenticated = (req, res, next) => {
@@ -34,26 +34,48 @@ export const isGuest = (req, res, next) => {
   res.redirect("/dashboard");
 };
 
-export const authorizeTenantAccess =
-  (getTenantId) => async (req, res, next) => {
+export const authorizeOrganizationAccess =
+  (getOrganizationId, ...roles) =>
+  async (req, res, next) => {
     try {
-      const userId = req.user.id;
-      const tenantId = getTenantId(req);
+      const user = req.user;
+      const organizationId = getOrganizationId(req);
 
-      if (!tenantId) {
-        return res.status(400).json({
-          message: "Tenant ID is required",
+      if (!user) {
+        return res.status(401).json({
+          status: "failed",
+          message: "Unauthorized",
         });
+      }
+
+      if (!organizationId) {
+        return res.status(400).json({
+          status: "failed",
+          message: "Organization ID is required",
+        });
+      }
+
+      if (roles.length !== 0) {
+        const hasOrganizationRole = user.organizationRoles?.some((orgRole) =>
+          roles.includes(orgRole.role)
+        );
+
+        if (!hasOrganizationRole) {
+          return res.status(403).json({
+            status: "failed",
+            message: "Forbidden",
+          });
+        }
       }
 
       const access = await db
         .select()
-        .from(tenantUsers)
+        .from(organizationUsers)
         .where(
           and(
-            eq(tenantUsers.userId, userId),
-            eq(tenantUsers.tenantId, tenantId),
-          ),
+            eq(organizationUsers.userId, user.id),
+            eq(organizationUsers.organizationId, organizationId)
+          )
         )
         .limit(1);
 
@@ -63,6 +85,7 @@ export const authorizeTenantAccess =
         }
 
         return res.status(403).json({
+          status: "failed",
           message: "Forbidden",
         });
       }
@@ -77,3 +100,98 @@ export const authorizeTenantAccess =
       next(err);
     }
   };
+
+export const authorizeTenantAccess =
+  (getTenantId, ...roles) =>
+  async (req, res, next) => {
+    try {
+      const user = req.user;
+      const tenantId = getTenantId(req);
+
+      if (!user) {
+        return res.status(401).json({
+          status: "failed",
+          message: "Unauthorized",
+        });
+      }
+
+      if (!tenantId) {
+        return res.status(400).json({
+          status: "failed",
+          message: "Tenant ID is required",
+        });
+      }
+
+      if (roles.length !== 0) {
+        const hasOrganizationRole = user.organizationRoles?.some((orgRole) =>
+          roles.includes(orgRole.role)
+        );
+
+        const hasTenantRole = user.tenantRoles?.some((tenantRole) =>
+          roles.includes(tenantRole.role)
+        );
+
+        if (!hasOrganizationRole && !hasTenantRole) {
+          return res.status(403).json({
+            status: "failed",
+            message: "Forbidden",
+          });
+        }
+      }
+
+      const access = await db
+        .select()
+        .from(tenantUsers)
+        .where(
+          and(
+            eq(tenantUsers.userId, user.id),
+            eq(tenantUsers.tenantId, tenantId)
+          )
+        )
+        .limit(1);
+
+      if (access.length === 0) {
+        const [tenant] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, tenantId));
+
+        const orgAccess = await db
+          .select()
+          .from(organizationUsers)
+          .where(
+            and(
+              eq(organizationUsers.userId, user.id),
+              eq(organizationUsers.organizationId, tenant.organizationId)
+            )
+          )
+          .limit(1);
+
+        if (orgAccess.length === 0) {
+          if (req.file) {
+            await fs.unlink(req.file.path);
+          }
+
+          return res.status(403).json({
+            status: "failed",
+            message: "Forbidden",
+          });
+        }
+      }
+
+      next();
+    } catch (err) {
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch {}
+      }
+      next(err);
+    }
+  };
+
+export const authorizeAction = (...roles) => {
+  return (req, res, next) => {
+    next();
+  };
+};

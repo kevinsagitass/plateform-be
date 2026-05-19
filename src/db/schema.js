@@ -47,6 +47,30 @@ export const users = mysqlTable("users", {
   ...auditColumns,
 });
 
+export const organizations = mysqlTable("organizations", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const tenants = mysqlTable("tenants", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  organizationId: varchar("organization_id", { length: 36 })
+    .notNull()
+    .references(() => organizations.id, {
+      onDelete: "cascade",
+    }),
+  tenantName: varchar("tenant_name", { length: 255 }).notNull(),
+  location: varchar("location", { length: 255 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  ...auditColumns,
+});
+
 export const organizationUsers = mysqlTable("organization_users", {
   userId: varchar("user_id", { length: 36 })
     .notNull()
@@ -74,35 +98,6 @@ export const tenantUsers = mysqlTable("tenant_users", {
       onDelete: "cascade",
     }),
   role: mysqlEnum("role", ["STORE_MANAGER", "CASHIER", "COOK"]).notNull(),
-  ...auditColumns,
-});
-
-export const organizations = mysqlTable("organizations", {
-  id: varchar("id", { length: 36 })
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: varchar("name", { length: 255 }).notNull(),
-  subscriptionStatus: mysqlEnum("subscription_status", [
-    "ACTIVE",
-    "TRIAL",
-    "EXPIRED",
-  ]).default("TRIAL"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const tenants = mysqlTable("tenants", {
-  id: varchar("id", { length: 36 })
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  organizationId: varchar("organization_id", { length: 36 })
-    .notNull()
-    .references(() => organizations.id, {
-      onDelete: "cascade",
-    }),
-  tenantName: varchar("tenant_name", { length: 255 }).notNull(),
-  location: varchar("location", { length: 255 }).notNull(),
-  isActive: boolean("is_active").default(true),
   ...auditColumns,
 });
 
@@ -141,9 +136,9 @@ export const menuCategories = mysqlTable(
   (table) => ({
     tenantOrderUnique: uniqueIndex("tenant_order_unique").on(
       table.tenantId,
-      table.orderNumber,
+      table.orderNumber
     ),
-  }),
+  })
 );
 
 export const menus = mysqlTable("menus", {

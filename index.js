@@ -9,6 +9,7 @@ import authRoutes from "./src/routes/auth.routes.js";
 import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import menuRoutes from "./src/routes/menu.routes.js";
 import tenantRoutes from "./src/routes/tenant.routes.js";
+import organizationRoutes from "./src/routes/organization.routes.js";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ app.use(
       secure: false,
       maxAge: 24 * 60 * 60 * 1000,
     },
-  }),
+  })
 );
 
 app.use(passport.initialize());
@@ -39,6 +40,7 @@ const apiRoutes = express.Router();
 apiRoutes.use("/auth", authRoutes);
 apiRoutes.use("/dashboard", dashboardRoutes);
 apiRoutes.use("/menus", menuRoutes);
+apiRoutes.use("/organizations", organizationRoutes);
 apiRoutes.use("/tenants", tenantRoutes);
 
 app.use("/api", apiRoutes);

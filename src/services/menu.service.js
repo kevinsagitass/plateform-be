@@ -2,7 +2,6 @@ import { db } from "../db/index.js";
 import { menus, menuCategories, addonGroups, addons } from "../db/schema.js";
 import { and, or, like, eq, count, inArray, asc } from "drizzle-orm";
 import fs from "fs";
-import { authorizeTenantAccess } from "../middlewares/auth.middleware.js";
 
 export const getAllMenuCategoriesData = async (tenantId) => {
   try {
@@ -39,8 +38,8 @@ export const getAllMenuData = async (menuParam) => {
       conditions.push(
         or(
           like(menus.name, `%${menuParam.search}%`),
-          like(menus.description, `%${menuParam.search}%`),
-        ),
+          like(menus.description, `%${menuParam.search}%`)
+        )
       );
     }
     if (menuParam.categoryId) {
@@ -118,8 +117,8 @@ export const getAllMenuByCategoriesData = async (tenantId) => {
       .where(
         and(
           eq(menuCategories.tenantId, tenantId),
-          eq(menuCategories.isActive, true),
-        ),
+          eq(menuCategories.isActive, true)
+        )
       )
       .orderBy(menuCategories.orderNumber);
 
@@ -257,7 +256,7 @@ export const addMenuData = async (menuData) => {
               name: item.name,
               price: item.price,
               isAvailable: item.isAvailable,
-            })),
+            }))
           );
         }
       }
@@ -281,7 +280,7 @@ export const addMenuData = async (menuData) => {
           ...group,
           items,
         };
-      }),
+      })
     );
 
     return {
@@ -319,8 +318,8 @@ export const updateMenuData = async (menuData) => {
 
     const updateData = Object.fromEntries(
       Object.entries(menuData).filter(
-        ([_, v]) => v !== undefined && v !== "" && _ != "tenantId",
-      ),
+        ([_, v]) => v !== undefined && v !== "" && _ != "tenantId"
+      )
     );
 
     await db.transaction(async (tx) => {
@@ -329,7 +328,7 @@ export const updateMenuData = async (menuData) => {
         .set({
           ...updateData,
           imagePath: updateData.newImagePath || existing.imagePath,
-          updatedAt: new Date(),
+          updatedBy: menuData.user.username,
         })
         .where(eq(menus.id, menuData.id));
 
@@ -368,7 +367,7 @@ export const updateMenuData = async (menuData) => {
                 name: item.name,
                 price: item.price,
                 isAvailable: item.isAvailable,
-              })),
+              }))
             );
           }
         }
@@ -396,7 +395,7 @@ export const updateMenuData = async (menuData) => {
           ...group,
           items,
         };
-      }),
+      })
     );
 
     return {

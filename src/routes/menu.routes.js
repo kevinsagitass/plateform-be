@@ -37,7 +37,7 @@ router.post(
   authorizeTenantAccess((req) => req.body.tenantId),
   addMenu,
 );
-router.put(
+router.patch(
   "/:id",
   upload.single("image"),
   authorizeTenantAccess((req) => req.body.tenantId),

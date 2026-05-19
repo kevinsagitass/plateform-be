@@ -71,7 +71,7 @@ CREATE TABLE `orders` (
 	`session_id` varchar(36) NOT NULL,
 	`total_amount` int NOT NULL,
 	`payment_url` varchar(255) NOT NULL,
-	`payment_status` enum('PENDING','PAID','EXPIRED','CANCELLED') NOT NULL DEFAULT 'pending',
+	`payment_status` enum('PENDING','PAID','EXPIRED','CANCELLED') NOT NULL DEFAULT 'PENDING',
 	`created_at` timestamp DEFAULT (now()),
 	CONSTRAINT `orders_id` PRIMARY KEY(`id`)
 );
@@ -86,7 +86,6 @@ CREATE TABLE `organization_users` (
 CREATE TABLE `organizations` (
 	`id` varchar(36) NOT NULL,
 	`name` varchar(255) NOT NULL,
-	`subscription_status` enum('ACTIVE','TRIAL','EXPIRED') DEFAULT 'TRIAL',
 	`is_active` boolean DEFAULT true,
 	`created_at` timestamp DEFAULT (now()),
 	CONSTRAINT `organizations_id` PRIMARY KEY(`id`)
@@ -99,7 +98,7 @@ CREATE TABLE `sessions` (
 	`trx_date` date NOT NULL,
 	`is_active` boolean NOT NULL DEFAULT true,
 	`created_at` timestamp DEFAULT (now()),
-	`updated_at` timestamp,
+	`finished_at` timestamp,
 	CONSTRAINT `sessions_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
