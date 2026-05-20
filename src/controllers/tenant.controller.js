@@ -6,8 +6,10 @@ import {
 import {
   getAllUserTenantsData,
   getTenantDetailData,
+  getTenantsByOrganizationData,
   addTenantData,
   updateTenantData,
+  getTenantUserRoleData,
 } from "../services/tenant.service.js";
 
 export const getAllUserTenants = async (req, res) => {
@@ -26,6 +28,28 @@ export const getTenantDetail = async (req, res) => {
     const tenantDetail = await getTenantDetailData(id);
 
     return successResponse(res, 200, "success", tenantDetail);
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getTenantUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantUserRole = await getTenantUserRoleData(id, req.user.id);
+
+    return successResponse(res, 200, "success", tenantUserRole);
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getTenantsByOrganization = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tenantsData = await getTenantsByOrganizationData(id, req.user.id);
+
+    return successResponse(res, 200, "success", tenantsData);
   } catch (err) {
     throw err;
   }

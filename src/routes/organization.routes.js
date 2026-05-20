@@ -10,6 +10,7 @@ import {
   deleteOrganization,
   getAllUserOrganizations,
   getOrganizationDetail,
+  getOrganizationUserRole,
 } from "../controllers/organization.controller.js";
 const router = express.Router();
 
@@ -20,6 +21,11 @@ router.get(
   "/:id",
   authorizeOrganizationAccess((req) => req.params.id, "OWNER", "ADMIN"),
   getOrganizationDetail
+);
+router.get(
+  "/:id/ROLE",
+  authorizeOrganizationAccess((req) => req.params.id),
+  getOrganizationUserRole
 );
 router.post("/", authorizeAction("OWNER"), addOrganization);
 router.patch(

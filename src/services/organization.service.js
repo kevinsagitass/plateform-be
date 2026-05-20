@@ -4,22 +4,28 @@ import {
   organizationUsers,
   subscriptions,
 } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { addDays } from "../helpers/date.helper.js";
+import { getHighestRole } from "../helpers/role.helper.js";
 
 export const getAllUserOrganizationsData = async (user) => {
   try {
     const organizationsData = await db
-      .select({
+      .selectDistinct({
         organizationId: organizations.id,
         organizationName: organizations.name,
         isActive: organizations.isActive,
-        role: organizationUsers.role,
+        plan: subscriptions.plan,
+        endDate: subscriptions.endDate,
       })
       .from(organizationUsers)
       .leftJoin(
         organizations,
         eq(organizationUsers.organizationId, organizations.id)
+      )
+      .leftJoin(
+        subscriptions,
+        eq(organizations.id, subscriptions.organizationId)
       )
       .where(eq(organizationUsers.userId, user.id));
 
@@ -55,6 +61,33 @@ export const getOrganizationDetailData = async (organizationId) => {
       .where(eq(organizations.id, organizationId));
 
     return organizationData;
+  } catch (err) {
+    console.log(err);
+    throw {
+      message: err.message,
+    };
+  }
+};
+
+export const getOrganizationUserRoleData = async (organizationId, userId) => {
+  try {
+    const organizationRoleData = await db
+      .select({
+        organizationId: organizationUsers.organizationId,
+        userId: organizationUsers.userId,
+        role: organizationUsers.role,
+      })
+      .from(organizationUsers)
+      .where(
+        and(
+          eq(organizationUsers.organizationId, organizationId),
+          eq(organizationUsers.userId, userId)
+        )
+      );
+
+    const roleList = organizationRoleData.map((r) => r.role);
+
+    return getHighestRole(roleList);
   } catch (err) {
     console.log(err);
     throw {

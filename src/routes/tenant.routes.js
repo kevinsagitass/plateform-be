@@ -4,6 +4,8 @@ import {
   updateTenant,
   getAllUserTenants,
   getTenantDetail,
+  getTenantsByOrganization,
+  getTenantUserRole,
 } from "../controllers/tenant.controller.js";
 import {
   authorizeOrganizationAccess,
@@ -16,9 +18,19 @@ router.use(isAuthenticated);
 
 router.get("/", getAllUserTenants);
 router.get(
+  "/organization/:id",
+  authorizeOrganizationAccess((req) => req.params.id),
+  getTenantsByOrganization
+);
+router.get(
   "/:id",
   authorizeTenantAccess((req) => req.params.id),
   getTenantDetail
+);
+router.get(
+  "/:id/role",
+  authorizeTenantAccess((req) => req.params.id),
+  getTenantUserRole
 );
 router.post(
   "/",

@@ -6,7 +6,8 @@ import {
   organizations,
   organizationUsers,
 } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, ne, or } from "drizzle-orm";
+import { getHighestRole } from "../helpers/role.helper.js";
 
 export const getAllUserTenantsData = async (user) => {
   try {
@@ -21,13 +22,21 @@ export const getAllUserTenantsData = async (user) => {
           organizationId: organizations.id,
           name: organizations.name,
         },
-        createdAt: tenants.createdAt
+        createdAt: tenants.createdAt,
       })
       .from(organizationUsers)
-      .leftJoin(tenantUsers, eq(organizationUsers.userId, tenantUsers.userId))
-      .leftJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+      .leftJoin(
+        tenants,
+        eq(organizationUsers.organizationId, tenants.organizationId)
+      )
       .leftJoin(organizations, eq(tenants.organizationId, organizations.id))
-      .where(eq(tenantUsers.userId, user.id))
+      .leftJoin(tenantUsers, eq(organizationUsers.userId, tenantUsers.userId))
+      .where(
+        or(
+          eq(organizationUsers.userId, user.id),
+          eq(tenantUsers.userId, user.id)
+        )
+      )
       .orderBy(tenants.createdAt);
 
     return tenantsData;
@@ -80,6 +89,108 @@ export const getTenantDetailData = async (tenantId) => {
   }
 };
 
+export const getTenantsByOrganizationData = async (organizationId, userId) => {
+  try {
+    const access = await db
+      .select()
+      .from(tenantUsers)
+      .where(eq(tenantUsers.userId, userId));
+
+    const organizationAccess = await db
+      .selectDistinct({
+        tenantId: tenants.id,
+      })
+      .from(organizationUsers)
+      .leftJoin(
+        tenants,
+        eq(organizationUsers.organizationId, tenants.organizationId)
+      )
+      .where(
+        and(
+          eq(organizationUsers.userId, userId),
+          ne(organizationUsers.role, "STAFF")
+        )
+      );
+
+    const tenantIds = [
+      ...access.map((acc) => acc.tenantId),
+      ...organizationAccess.map((orgAcc) => orgAcc.tenantId),
+    ];
+
+    const tenantsData = await db
+      .select({
+        tenantId: tenants.id,
+        tenantName: tenants.tenantName,
+        tenantLocation: tenants.location,
+        isActive: tenants.isActive,
+        organization: {
+          organizationId: organizations.id,
+          name: organizations.name,
+        },
+      })
+      .from(tenants)
+      .leftJoin(organizations, eq(tenants.organizationId, organizations.id))
+      .where(
+        and(
+          eq(tenants.organizationId, organizationId),
+          tenantIds.length > 0 ? inArray(tenants.id, tenantIds) : undefined
+        )
+      );
+
+    return tenantsData;
+  } catch (err) {
+    console.log(err);
+    throw {
+      message: err.message,
+    };
+  }
+};
+
+export const getTenantUserRoleData = async (tenantId, userId) => {
+  try {
+    const tenantRoleData = await db
+      .select({
+        tenantId: tenantUsers.tenantId,
+        userId: tenantUsers.userId,
+        role: tenantUsers.role,
+        organizationId: organizations.id,
+      })
+      .from(tenantUsers)
+      .leftJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+      .leftJoin(organizations, eq(tenants.organizationId, organizations.id))
+      .where(
+        and(eq(tenantUsers.tenantId, tenantId), eq(tenantUsers.userId, userId))
+      );
+
+    const organizationRoleData = await db
+      .select({
+        organizationId: organizationUsers.organizationId,
+        userId: organizationUsers.userId,
+        role: organizationUsers.role,
+      })
+      .from(organizationUsers)
+      .leftJoin(
+        tenants,
+        eq(organizationUsers.organizationId, tenants.organizationId)
+      )
+      .where(eq(tenants.id, tenantId));
+
+    console.log(organizationRoleData);
+
+    const roleList = [
+      ...tenantRoleData.map((r) => r.role),
+      ...organizationRoleData.map((r) => r.role),
+    ];
+
+    return getHighestRole(roleList);
+  } catch (err) {
+    console.log(err);
+    throw {
+      message: err.message,
+    };
+  }
+};
+
 export const addTenantData = async (tenantData) => {
   try {
     const tenantId = crypto.randomUUID();
@@ -101,7 +212,7 @@ export const addTenantData = async (tenantData) => {
             openHour: wh.openHour,
             closeHour: wh.closeHour,
             createdBy: tenantData.user.username,
-          })),
+          }))
         );
       }
     });
@@ -132,9 +243,7 @@ export const addTenantData = async (tenantData) => {
 export const updateTenantData = async (tenantData) => {
   try {
     const updateData = Object.fromEntries(
-      Object.entries(tenantData).filter(
-        ([_, v]) => v !== undefined && v !== "",
-      ),
+      Object.entries(tenantData).filter(([_, v]) => v !== undefined && v !== "")
     );
 
     await db.transaction(async (tx) => {
@@ -147,9 +256,7 @@ export const updateTenantData = async (tenantData) => {
         await Promise.all(
           tenantData.tenantWorkHours.map((wh) => {
             const updateWorkHourData = Object.fromEntries(
-              Object.entries(wh).filter(
-                ([_, v]) => v !== undefined && v !== "",
-              ),
+              Object.entries(wh).filter(([_, v]) => v !== undefined && v !== "")
             );
 
             return tx
@@ -159,7 +266,7 @@ export const updateTenantData = async (tenantData) => {
                 updatedBy: tenantData.user.username,
               })
               .where(eq(tenantWorkHours.id, wh.tenantWorkHourId));
-          }),
+          })
         );
       }
     });

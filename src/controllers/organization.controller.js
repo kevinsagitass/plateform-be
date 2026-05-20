@@ -9,6 +9,7 @@ import {
   deleteOrganizationData,
   getAllUserOrganizationsData,
   getOrganizationDetailData,
+  getOrganizationUserRoleData,
 } from "../services/organization.service.js";
 
 export const getAllUserOrganizations = async (req, res) => {
@@ -27,6 +28,20 @@ export const getOrganizationDetail = async (req, res) => {
     const organizationDetail = await getOrganizationDetailData(id);
 
     return successResponse(res, 200, "success", organizationDetail);
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getOrganizationUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const organizationUserRole = await getOrganizationUserRoleData(
+      id,
+      req.user.id
+    );
+
+    return successResponse(res, 200, "success", organizationUserRole);
   } catch (err) {
     throw err;
   }
