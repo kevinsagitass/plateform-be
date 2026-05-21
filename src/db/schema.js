@@ -13,27 +13,35 @@ import {
 
 export const auditColumns = {
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: varchar("created_by", { length: 36 }).notNull(),
+  createdBy: varchar("created_by", { length: 36 })
+    .notNull()
+    .references(() => users.id),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date()),
-  updatedBy: varchar("updated_by", { length: 36 }),
+  updatedBy: varchar("updated_by", { length: 36 }).references(() => users.id),
 };
 
 export const subscriptions = mysqlTable("subscriptions", {
   id: varchar("id", { length: 36 })
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  organizationId: varchar("organization_id", { length: 36 })
+  userId: varchar("organization_id", { length: 36 })
     .notNull()
-    .references(() => organizations.id, {
+    .references(() => users.id, {
       onDelete: "cascade",
     }),
-  plan: mysqlEnum("plan", ["BASIC", "PRO", "ENTERPRISE"]).notNull(),
+  plan: mysqlEnum("plan", ["FREE", "BASIC", "PRO", "ENTERPRISE"]).notNull(),
   status: mysqlEnum("status", ["ACTIVE", "EXPIRED", "CANCELED"]).notNull(),
   startDate: timestamp("start_date").defaultNow(),
   endDate: timestamp("end_date"),
   ...auditColumns,
+});
+
+export const subscriptionConfig = mysqlTable("subscription_config", {
+  plan: mysqlEnum("plan", ["FREE", "BASIC", "PRO", "ENTERPRISE"]).notNull(),
+  maxOrganization: int("max_organization").notNull().default(0),
+  maxTenant: int("max_tenant").notNull().default(0),
 });
 
 export const users = mysqlTable("users", {
@@ -53,7 +61,7 @@ export const organizations = mysqlTable("organizations", {
     .$defaultFn(() => crypto.randomUUID()),
   name: varchar("name", { length: 255 }).notNull(),
   isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
+  ...auditColumns,
 });
 
 export const tenants = mysqlTable("tenants", {

@@ -10,6 +10,8 @@ import dashboardRoutes from "./src/routes/dashboard.routes.js";
 import menuRoutes from "./src/routes/menu.routes.js";
 import tenantRoutes from "./src/routes/tenant.routes.js";
 import organizationRoutes from "./src/routes/organization.routes.js";
+import roleRoutes from "./src/routes/role.routes.js";
+import subscriptionRoutes from "./src/routes/subscription.routes.js";
 
 dotenv.config();
 
@@ -39,6 +41,8 @@ const apiRoutes = express.Router();
 
 apiRoutes.use("/auth", authRoutes);
 apiRoutes.use("/dashboard", dashboardRoutes);
+apiRoutes.use("/roles", roleRoutes);
+apiRoutes.use("/subscriptions", subscriptionRoutes);
 apiRoutes.use("/menus", menuRoutes);
 apiRoutes.use("/organizations", organizationRoutes);
 apiRoutes.use("/tenants", tenantRoutes);

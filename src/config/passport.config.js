@@ -1,7 +1,12 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
-import { users, tenantUsers, organizationUsers } from "../db/schema.js";
+import {
+  users,
+  tenantUsers,
+  organizationUsers,
+  subscriptions,
+} from "../db/schema.js";
 import { db } from "../db/index.js";
 import { eq } from "drizzle-orm";
 
@@ -49,19 +54,28 @@ passport.use(
           .from(tenantUsers)
           .where(eq(tenantUsers.userId, user.id));
 
+        const [subscriptionData] = await db
+          .select({
+            plan: subscriptions.plan,
+            status: subscriptions.status,
+          })
+          .from(subscriptions)
+          .where(eq(subscriptions.userId, user.id));
+
         const { password: _password, ...userWithoutPassword } = user;
 
         return done(null, {
           ...userWithoutPassword,
           organizationRoles: organizationRolesData,
           tenantRoles: tenantRolesData,
+          subscription: subscriptionData,
         });
       } catch (err) {
         console.log(err);
         return done(err);
       }
-    },
-  ),
+    }
+  )
 );
 
 passport.serializeUser((user, done) => {

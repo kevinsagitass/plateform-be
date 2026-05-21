@@ -1,6 +1,6 @@
 import { db } from "../db/index.js";
 import bcrypt from "bcrypt";
-import { users } from "../db/schema.js";
+import { subscriptions, users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 
 export const registerUserData = async (userData) => {
@@ -32,6 +32,7 @@ export const registerUserData = async (userData) => {
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
     const id = crypto.randomUUID();
+    const subscriptionId = crypto.randomUUID();
 
     const newUserData = {
       ...userData,
@@ -41,6 +42,15 @@ export const registerUserData = async (userData) => {
     };
 
     await db.insert(users).values(newUserData);
+
+    await db.insert(subscriptions).values({
+      id: subscriptionId,
+      userId: id,
+      plan: "BASIC",
+      status: "ACTIVE",
+      endDate: addDays(new Date(), 30),
+      createdBy: id,
+    });
 
     const [newUser] = await db
       .select({

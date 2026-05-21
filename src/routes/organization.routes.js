@@ -12,6 +12,7 @@ import {
   getOrganizationDetail,
   getOrganizationUserRole,
 } from "../controllers/organization.controller.js";
+import { isSubscriptionActive } from "../middlewares/subscription.middleware.js";
 const router = express.Router();
 
 router.use(isAuthenticated);
@@ -27,9 +28,15 @@ router.get(
   authorizeOrganizationAccess((req) => req.params.id),
   getOrganizationUserRole
 );
-router.post("/", authorizeAction("OWNER"), addOrganization);
+router.post(
+  "/",
+  isSubscriptionActive((req) => req.body.organizationId, null),
+  authorizeAction("OWNER"),
+  addOrganization
+);
 router.patch(
   "/:id",
+  isSubscriptionActive((req) => req.params.id),
   authorizeOrganizationAccess((req) => req.params.id, "OWNER"),
   updateOrganization
 );

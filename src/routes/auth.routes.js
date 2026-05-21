@@ -22,11 +22,14 @@ router.post("/login", (req, res, next) => {
       {
         id: user.id,
         username: user.username,
+        name: user.name,
+        email: user.email,
         organizationRoles: user.organizationRoles,
         tenantRoles: user.tenantRoles,
+        subscription: user.subscription,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" },
+      { expiresIn: "1d" }
     );
 
     return successResponse(res, 200, "success", {

@@ -3,6 +3,7 @@ import {
   organizations,
   organizationUsers,
   subscriptions,
+  tenants,
 } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { addDays } from "../helpers/date.helper.js";
@@ -15,17 +16,25 @@ export const getAllUserOrganizationsData = async (user) => {
         organizationId: organizations.id,
         organizationName: organizations.name,
         isActive: organizations.isActive,
-        plan: subscriptions.plan,
-        endDate: subscriptions.endDate,
+        totalStaff: db.$count(
+          organizationUsers,
+          and(
+            eq(organizationUsers.organizationId, organizations.id),
+            eq(organizationUsers.role, "STAFF")
+          )
+        ),
+        totalTenant: db.$count(
+          tenants,
+          and(
+            eq(tenants.organizationId, organizations.id),
+            eq(tenants.isActive, true)
+          )
+        ),
       })
       .from(organizationUsers)
       .leftJoin(
         organizations,
         eq(organizationUsers.organizationId, organizations.id)
-      )
-      .leftJoin(
-        subscriptions,
-        eq(organizations.id, subscriptions.organizationId)
       )
       .where(eq(organizationUsers.userId, user.id));
 
@@ -99,7 +108,6 @@ export const getOrganizationUserRoleData = async (organizationId, userId) => {
 export const addOrganizationData = async (data) => {
   try {
     const organizationId = crypto.randomUUID();
-    const subscriptionId = crypto.randomUUID();
 
     await db.insert(organizations).values({
       id: organizationId,
@@ -107,18 +115,9 @@ export const addOrganizationData = async (data) => {
       createdBy: data.user.id,
     });
 
-    await db.insert(subscriptions).values({
-      id: subscriptionId,
-      organizationId: organizationId,
-      plan: "BASIC",
-      status: "ACTIVE",
-      endDate: addDays(new Date(), 30),
-      createdBy: data.user.username,
-    });
-
     await db.insert(organizationUsers).values({
       organizationId: organizationId,
-      userId: data.user.username,
+      userId: data.user.id,
       role: "OWNER",
     });
 
@@ -127,15 +126,7 @@ export const addOrganizationData = async (data) => {
       .from(organizations)
       .where(eq(organizations.id, organizationId));
 
-    const [newSubscriptionPlan] = await db
-      .select()
-      .from(subscriptions)
-      .where(eq(subscriptions.id, subscriptionId));
-
-    return {
-      ...newOrganization,
-      subscription: newSubscriptionPlan,
-    };
+    return newOrganization;
   } catch (err) {
     console.log(err);
     throw {
