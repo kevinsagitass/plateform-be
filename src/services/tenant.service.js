@@ -174,9 +174,6 @@ export const getTenantUserRoleData = async (tenantId, userId) => {
         eq(organizationUsers.organizationId, tenants.organizationId)
       )
       .where(eq(tenants.id, tenantId));
-
-    console.log(organizationRoleData);
-
     const roleList = [
       ...tenantRoleData.map((r) => r.role),
       ...organizationRoleData.map((r) => r.role),
