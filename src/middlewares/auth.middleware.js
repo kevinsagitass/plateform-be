@@ -61,8 +61,8 @@ export const authorizeOrganizationAccess =
         .where(
           and(
             eq(organizationUsers.userId, user.id),
-            eq(organizationUsers.organizationId, organizationId),
-          ),
+            eq(organizationUsers.organizationId, organizationId)
+          )
         );
 
       if (access.length === 0) {
@@ -78,7 +78,7 @@ export const authorizeOrganizationAccess =
 
       if (roles.length !== 0) {
         const hasOrganizationAccess = access?.some((acc) =>
-          roles.includes(acc.role),
+          roles.includes(acc.role)
         );
 
         if (!hasOrganizationAccess) {
@@ -127,8 +127,8 @@ export const authorizeTenantAccess =
         .where(
           and(
             eq(tenantUsers.userId, user.id),
-            eq(tenantUsers.tenantId, tenantId),
-          ),
+            eq(tenantUsers.tenantId, tenantId)
+          )
         );
 
       const [tenant] = await db
@@ -143,8 +143,8 @@ export const authorizeTenantAccess =
           and(
             eq(organizationUsers.userId, user.id),
             eq(organizationUsers.organizationId, tenant.organizationId),
-            ne(organizationUsers.role, "STAFF"),
-          ),
+            ne(organizationUsers.role, "STAFF")
+          )
         );
 
       if (access.length === 0) {
@@ -162,18 +162,27 @@ export const authorizeTenantAccess =
 
       if (roles.length !== 0) {
         const hasOrganizationRole = orgAccess?.some((orgRole) =>
-          roles.includes(orgRole.role),
+          roles.includes(orgRole.role)
         );
 
         const hasTenantRole = access?.some((tenantRole) =>
-          roles.includes(tenantRole.role),
+          roles.includes(tenantRole.role)
         );
 
-        if ((orgAccess?.length > 0 && !hasOrganizationRole) || !hasTenantRole) {
-          return res.status(403).json({
-            status: "failed",
-            message: "Forbidden",
-          });
+        if (!hasTenantRole) {
+          if (orgAccess?.length > 0) {
+            if (!hasOrganizationRole) {
+              return res.status(403).json({
+                status: "failed",
+                message: "Forbidden",
+              });
+            }
+          } else {
+            return res.status(403).json({
+              status: "failed",
+              message: "Forbidden",
+            });
+          }
         }
       }
 

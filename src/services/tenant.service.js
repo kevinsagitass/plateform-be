@@ -137,7 +137,36 @@ export const getTenantsByOrganizationData = async (organizationId, userId) => {
         )
       );
 
-    return tenantsData;
+    const ids = tenantsData.map((t) => t.tenantId);
+
+    const workHoursRaw =
+      ids.length > 0
+        ? await db
+            .select({
+              tenantId: tenantWorkHours.tenantId,
+              tenantWorkHourId: tenantWorkHours.id,
+              dayOfMonth: tenantWorkHours.dayOfMonth,
+              openHour: tenantWorkHours.openHour,
+              closeHour: tenantWorkHours.closeHour,
+              isActive: tenantWorkHours.isActive,
+            })
+            .from(tenantWorkHours)
+            .where(inArray(tenantWorkHours.tenantId, ids))
+            .orderBy(tenantWorkHours.dayOfMonth)
+        : [];
+
+    const workHoursByTenant = workHoursRaw.reduce((acc, wh) => {
+      if (!acc[wh.tenantId]) acc[wh.tenantId] = [];
+      acc[wh.tenantId].push(wh);
+      return acc;
+    }, {});
+
+    const result = tenantsData.map((t) => ({
+      ...t,
+      tenantWorkHours: workHoursByTenant[t.tenantId] ?? [],
+    }));
+
+    return result;
   } catch (err) {
     console.log(err);
     throw {
@@ -198,18 +227,22 @@ export const addTenantData = async (tenantData) => {
         organizationId: tenantData.organizationId,
         tenantName: tenantData.tenantName,
         location: tenantData.location,
-        createdBy: tenantData.user.username,
+        createdBy: tenantData.user.id,
       });
 
       if (tenantData.tenantWorkHours) {
         await tx.insert(tenantWorkHours).values(
-          tenantData.tenantWorkHours.map((wh) => ({
-            tenantId: tenantId,
-            dayOfMonth: wh.dayOfMonth,
-            openHour: wh.openHour,
-            closeHour: wh.closeHour,
-            createdBy: tenantData.user.username,
-          }))
+          tenantData.tenantWorkHours.map((wh) => {
+            console.log(wh);
+            return {
+              tenantId: tenantId,
+              dayOfMonth: wh.dayOfMonth,
+              openHour: wh.openHour,
+              closeHour: wh.closeHour,
+              isActive: wh.isActive,
+              createdBy: tenantData.user.id,
+            };
+          })
         );
       }
     });
@@ -244,10 +277,13 @@ export const updateTenantData = async (tenantData) => {
     );
 
     await db.transaction(async (tx) => {
-      await tx.update(tenants).set({
-        ...updateData,
-        updatedBy: tenantData.user.username,
-      });
+      await tx
+        .update(tenants)
+        .set({
+          ...updateData,
+          updatedBy: tenantData.user.id,
+        })
+        .where(eq(tenants.id, tenantData.tenantId));
 
       if (tenantData.tenantWorkHours && tenantData.tenantWorkHours.length > 0) {
         await Promise.all(
@@ -256,11 +292,13 @@ export const updateTenantData = async (tenantData) => {
               Object.entries(wh).filter(([_, v]) => v !== undefined && v !== "")
             );
 
+            console.log(updateWorkHourData, wh.tenantWorkHourId);
+
             return tx
               .update(tenantWorkHours)
               .set({
                 ...updateWorkHourData,
-                updatedBy: tenantData.user.username,
+                updatedBy: tenantData.user.id,
               })
               .where(eq(tenantWorkHours.id, wh.tenantWorkHourId));
           })

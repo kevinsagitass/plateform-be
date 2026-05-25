@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "6ac8db39-fb67-49ac-adb5-038aa5a729f7",
+  "id": "714ec7c4-2bc6-4dab-b9f7-b8dccabd561b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "addon_groups": {
@@ -1019,8 +1019,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "organization_id": {
-          "name": "organization_id",
+        "user_id": {
+          "name": "user_id",
           "type": "varchar(36)",
           "primaryKey": false,
           "notNull": true,
@@ -1088,12 +1088,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "subscriptions_organization_id_users_id_fk": {
-          "name": "subscriptions_organization_id_users_id_fk",
+        "subscriptions_user_id_users_id_fk": {
+          "name": "subscriptions_user_id_users_id_fk",
           "tableFrom": "subscriptions",
           "tableTo": "users",
           "columnsFrom": [
-            "organization_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"

@@ -26,7 +26,7 @@ export const subscriptions = mysqlTable("subscriptions", {
   id: varchar("id", { length: 36 })
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  userId: varchar("organization_id", { length: 36 })
+  userId: varchar("user_id", { length: 36 })
     .notNull()
     .references(() => users.id, {
       onDelete: "cascade",

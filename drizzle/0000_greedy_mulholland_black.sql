@@ -113,7 +113,7 @@ CREATE TABLE `subscription_config` (
 --> statement-breakpoint
 CREATE TABLE `subscriptions` (
 	`id` varchar(36) NOT NULL,
-	`organization_id` varchar(36) NOT NULL,
+	`user_id` varchar(36) NOT NULL,
 	`plan` enum('FREE','BASIC','PRO','ENTERPRISE') NOT NULL,
 	`status` enum('ACTIVE','EXPIRED','CANCELED') NOT NULL,
 	`start_date` timestamp DEFAULT (now()),
@@ -209,7 +209,7 @@ ALTER TABLE `organizations` ADD CONSTRAINT `organizations_created_by_users_id_fk
 ALTER TABLE `organizations` ADD CONSTRAINT `organizations_updated_by_users_id_fk` FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `sessions` ADD CONSTRAINT `sessions_tenant_id_tenants_id_fk` FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `sessions` ADD CONSTRAINT `sessions_table_id_tables_id_fk` FOREIGN KEY (`table_id`) REFERENCES `tables`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE `subscriptions` ADD CONSTRAINT `subscriptions_organization_id_users_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `subscriptions` ADD CONSTRAINT `subscriptions_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `subscriptions` ADD CONSTRAINT `subscriptions_created_by_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `subscriptions` ADD CONSTRAINT `subscriptions_updated_by_users_id_fk` FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `tables` ADD CONSTRAINT `tables_tenant_id_tenants_id_fk` FOREIGN KEY (`tenant_id`) REFERENCES `tenants`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

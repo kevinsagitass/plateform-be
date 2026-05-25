@@ -1,9 +1,7 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
-import * as schema from "./schema.js";
 import bcrypt from "bcryptjs";
-
-// ─── Connection ───────────────────────────────────────────────────────────────
+import * as schema from "./schema.js";
 
 const connection = await mysql.createConnection({
   host: process.env.DB_HOST || "localhost",
@@ -14,1110 +12,775 @@ const connection = await mysql.createConnection({
 
 const db = drizzle(connection, { schema, mode: "default" });
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const uuid = () => crypto.randomUUID();
-const now = new Date();
-const hashedPassword = await bcrypt.hash("password123", 10);
-
-const daysFromNow = (days) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d;
-};
-
-const daysAgo = (days) => {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d;
-};
-
-// ─── IDs ──────────────────────────────────────────────────────────────────────
-
-// Users
-const superAdminId = uuid();
-const owner1Id     = uuid();
-const owner2Id     = uuid();
-const admin1Id     = uuid();
-const staff1Id     = uuid();
-const manager1Id   = uuid();
-const manager2Id   = uuid();
-const cashier1Id   = uuid();
-const cashier2Id   = uuid();
-const cook1Id      = uuid();
-const cook2Id      = uuid();
-
-// Organizations
-const org1Id = uuid();
-const org2Id = uuid();
-
-// Tenants
-const tenant1Id = uuid();
-const tenant2Id = uuid();
-const tenant3Id = uuid();
-
-// Menu Categories
-const cat1Id = uuid(); // Burgers     - tenant1
-const cat2Id = uuid(); // Sides       - tenant1
-const cat3Id = uuid(); // Drinks      - tenant1
-const cat4Id = uuid(); // Noodles     - tenant3
-const cat5Id = uuid(); // Appetizers  - tenant3
-
-// Menus
-const menu1Id  = uuid(); // Classic Burger
-const menu2Id  = uuid(); // Cheese Burger
-const menu3Id  = uuid(); // BBQ Burger
-const menu4Id  = uuid(); // French Fries
-const menu5Id  = uuid(); // Onion Rings
-const menu6Id  = uuid(); // Cola
-const menu7Id  = uuid(); // Lemonade
-const menu8Id  = uuid(); // Tonkotsu Ramen
-const menu9Id  = uuid(); // Pad Thai
-const menu10Id = uuid(); // Spring Rolls
-
-// Addon Groups
-const ag1Id = uuid(); // Patty Size   - Classic Burger
-const ag2Id = uuid(); // Extras       - Classic Burger
-const ag3Id = uuid(); // Size         - French Fries
-const ag4Id = uuid(); // Toppings     - Ramen
-const ag5Id = uuid(); // Spice Level  - Pad Thai
-
-// Tables
-const t1_table1Id = uuid();
-const t1_table2Id = uuid();
-const t1_table3Id = uuid();
-const t1_table4Id = uuid();
-const t1_table5Id = uuid();
-const t3_table1Id = uuid();
-const t3_table2Id = uuid();
-const t3_table3Id = uuid();
-
-// Sessions
-const session1Id = uuid();
-const session2Id = uuid();
-const session3Id = uuid();
-
-// Orders
-const order1Id = uuid();
-const order2Id = uuid();
-const order3Id = uuid();
-
-// ─── Seed ─────────────────────────────────────────────────────────────────────
-
 async function seed() {
-  console.log("🌱 Seeding database...\n");
+  console.log("🌱 Starting seed...");
 
-  // ── 1. Users ────────────────────────────────────────────────────────────────
+  const hashedPassword = await bcrypt.hash("password123", 10);
+
+  // ==================== SUBSCRIPTION CONFIG ====================
+  console.log("📦 Seeding subscription config...");
+  await db.insert(schema.subscriptionConfig).values([
+    { plan: "FREE", maxOrganization: 1, maxTenant: 1 },
+    { plan: "BASIC", maxOrganization: 3, maxTenant: 5 },
+    { plan: "PRO", maxOrganization: 10, maxTenant: 20 },
+    { plan: "ENTERPRISE", maxOrganization: 100, maxTenant: 500 },
+  ]);
+
+  // ==================== USERS ====================
   console.log("👤 Seeding users...");
+
+  const adminId = crypto.randomUUID();
+  const ownerId = crypto.randomUUID();
+  const managerId = crypto.randomUUID();
+  const cashierId = crypto.randomUUID();
+  const cookId = crypto.randomUUID();
+  const staffId = crypto.randomUUID();
+
+  // Insert admin first (self-reference workaround)
+  await db.insert(schema.users).values({
+    id: adminId,
+    username: "superadmin",
+    name: "Super Admin",
+    email: "admin@example.com",
+    password: hashedPassword,
+    createdBy: adminId,
+    updatedBy: adminId,
+  });
 
   await db.insert(schema.users).values([
     {
-      id: superAdminId,
-      username: "superadmin",
-      name: "Super Admin",
-      email: "superadmin@example.com",
+      id: ownerId,
+      username: "owner1",
+      name: "Owner Satu",
+      email: "owner@example.com",
       password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
+      createdBy: adminId,
+      updatedBy: adminId,
     },
     {
-      id: owner1Id,
-      username: "owner_john",
-      name: "John Owner",
-      email: "john@example.com",
+      id: managerId,
+      username: "manager1",
+      name: "Manager Satu",
+      email: "manager@example.com",
       password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
+      createdBy: adminId,
+      updatedBy: adminId,
     },
     {
-      id: owner2Id,
-      username: "owner_jane",
-      name: "Jane Owner",
-      email: "jane@example.com",
+      id: cashierId,
+      username: "cashier1",
+      name: "Cashier Satu",
+      email: "cashier@example.com",
       password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
+      createdBy: adminId,
+      updatedBy: adminId,
     },
     {
-      id: admin1Id,
-      username: "admin_bob",
-      name: "Bob Admin",
-      email: "bob@example.com",
+      id: cookId,
+      username: "cook1",
+      name: "Cook Satu",
+      email: "cook@example.com",
       password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
+      createdBy: adminId,
+      updatedBy: adminId,
     },
     {
-      id: staff1Id,
-      username: "staff_alice",
-      name: "Alice Staff",
-      email: "alice@example.com",
+      id: staffId,
+      username: "staff1",
+      name: "Staff Satu",
+      email: "staff@example.com",
       password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
-    },
-    {
-      id: manager1Id,
-      username: "manager_sara",
-      name: "Sara Manager",
-      email: "sara@example.com",
-      password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
-    },
-    {
-      id: manager2Id,
-      username: "manager_tom",
-      name: "Tom Manager",
-      email: "tom@example.com",
-      password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
-    },
-    {
-      id: cashier1Id,
-      username: "cashier_mike",
-      name: "Mike Cashier",
-      email: "mike@example.com",
-      password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
-    },
-    {
-      id: cashier2Id,
-      username: "cashier_emma",
-      name: "Emma Cashier",
-      email: "emma@example.com",
-      password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
-    },
-    {
-      id: cook1Id,
-      username: "cook_lisa",
-      name: "Lisa Cook",
-      email: "lisa@example.com",
-      password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
-    },
-    {
-      id: cook2Id,
-      username: "cook_david",
-      name: "David Cook",
-      email: "david@example.com",
-      password: hashedPassword,
-      createdAt: now,
-      createdBy: superAdminId,
-      updatedAt: now,
-      updatedBy: superAdminId,
+      createdBy: adminId,
+      updatedBy: adminId,
     },
   ]);
 
-  console.log("   ✔ 11 users inserted");
+  // ==================== SUBSCRIPTIONS ====================
+  console.log("💳 Seeding subscriptions...");
 
-  // ── 2. Subscription Config ──────────────────────────────────────────────────
-  console.log("⚙️  Seeding subscription config...");
+  const now = new Date();
+  const oneYearLater = new Date(now);
+  oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
 
-  await db.insert(schema.subscriptionConfig).values([
-    { plan: "FREE",       maxOrganization: 1,   maxTenant: 1   },
-    { plan: "BASIC",      maxOrganization: 3,   maxTenant: 5   },
-    { plan: "PRO",        maxOrganization: 10,  maxTenant: 20  },
-    { plan: "ENTERPRISE", maxOrganization: 999, maxTenant: 999 },
+  await db.insert(schema.subscriptions).values([
+    {
+      id: crypto.randomUUID(),
+      userId: adminId,
+      plan: "ENTERPRISE",
+      status: "ACTIVE",
+      startDate: now,
+      endDate: oneYearLater,
+      createdBy: adminId,
+      updatedBy: adminId,
+    },
+    {
+      id: crypto.randomUUID(),
+      userId: ownerId,
+      plan: "PRO",
+      status: "ACTIVE",
+      startDate: now,
+      endDate: oneYearLater,
+      createdBy: adminId,
+      updatedBy: adminId,
+    },
   ]);
 
-  console.log("   ✔ 4 subscription configs inserted");
-
-  // ── 3. Organizations ────────────────────────────────────────────────────────
+  // ==================== ORGANIZATIONS ====================
   console.log("🏢 Seeding organizations...");
+
+  const org1Id = crypto.randomUUID();
+  const org2Id = crypto.randomUUID();
 
   await db.insert(schema.organizations).values([
     {
       id: org1Id,
-      name: "Burger House Group",
+      name: "Restoran Nusantara Group",
       isActive: true,
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
       id: org2Id,
-      name: "Noodle Empire Co.",
+      name: "Kafe Kopi Kenangan Group",
       isActive: true,
-      createdAt: now,
-      createdBy: owner2Id,
-      updatedAt: now,
-      updatedBy: owner2Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
   ]);
 
-  console.log("   ✔ 2 organizations inserted");
-
-  // ── 4. Subscriptions ────────────────────────────────────────────────────────
-  console.log("💳 Seeding subscriptions...");
-
-  await db.insert(schema.subscriptions).values([
-    {
-      id: uuid(),
-      userId: owner1Id,
-      plan: "PRO",
-      status: "ACTIVE",
-      startDate: daysAgo(30),
-      endDate: daysFromNow(335),
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
-    },
-    {
-      id: uuid(),
-      userId: owner2Id,
-      plan: "BASIC",
-      status: "ACTIVE",
-      startDate: daysAgo(10),
-      endDate: daysFromNow(20),
-      createdAt: now,
-      createdBy: owner2Id,
-      updatedAt: now,
-      updatedBy: owner2Id,
-    },
-    {
-      id: uuid(),
-      userId: admin1Id,
-      plan: "FREE",
-      status: "ACTIVE",
-      startDate: daysAgo(5),
-      endDate: daysFromNow(25),
-      createdAt: now,
-      createdBy: admin1Id,
-      updatedAt: now,
-      updatedBy: admin1Id,
-    },
-  ]);
-
-  console.log("   ✔ 3 subscriptions inserted");
-
-  // ── 5. Organization Users ───────────────────────────────────────────────────
-  console.log("🔗 Seeding organization users...");
+  // ==================== ORGANIZATION USERS ====================
+  console.log("👥 Seeding organization users...");
 
   await db.insert(schema.organizationUsers).values([
-    // Org 1 — Burger House
-    { userId: owner1Id, organizationId: org1Id, role: "OWNER", createdAt: now },
-    { userId: admin1Id, organizationId: org1Id, role: "ADMIN", createdAt: now },
-    { userId: staff1Id, organizationId: org1Id, role: "STAFF", createdAt: now },
-    // Org 2 — Noodle Empire
-    { userId: owner2Id, organizationId: org2Id, role: "OWNER", createdAt: now },
-    { userId: admin1Id, organizationId: org2Id, role: "ADMIN", createdAt: now },
+    {
+      userId: ownerId,
+      organizationId: org1Id,
+      role: "OWNER",
+    },
+    {
+      userId: managerId,
+      organizationId: org1Id,
+      role: "ADMIN",
+    },
+    {
+      userId: staffId,
+      organizationId: org1Id,
+      role: "STAFF",
+    },
+    {
+      userId: ownerId,
+      organizationId: org2Id,
+      role: "OWNER",
+    },
   ]);
 
-  console.log("   ✔ 5 organization users inserted");
-
-  // ── 6. Tenants ──────────────────────────────────────────────────────────────
+  // ==================== TENANTS ====================
   console.log("🏪 Seeding tenants...");
+
+  const tenant1Id = crypto.randomUUID();
+  const tenant2Id = crypto.randomUUID();
+  const tenant3Id = crypto.randomUUID();
 
   await db.insert(schema.tenants).values([
     {
       id: tenant1Id,
       organizationId: org1Id,
-      tenantName: "Burger House - Downtown",
-      location: "123 Main St, Downtown",
+      tenantName: "Restoran Nusantara - Pusat",
+      location: "Jl. Sudirman No. 1, Jakarta Pusat",
       isActive: true,
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
       id: tenant2Id,
       organizationId: org1Id,
-      tenantName: "Burger House - Uptown",
-      location: "456 Oak Ave, Uptown",
+      tenantName: "Restoran Nusantara - Selatan",
+      location: "Jl. TB Simatupang No. 10, Jakarta Selatan",
       isActive: true,
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
       id: tenant3Id,
       organizationId: org2Id,
-      tenantName: "Noodle Empire - Central",
-      location: "789 Elm Rd, Central",
+      tenantName: "Kafe Kopi Kenangan - Utama",
+      location: "Jl. Gatot Subroto No. 5, Jakarta",
       isActive: true,
-      createdAt: now,
-      createdBy: owner2Id,
-      updatedAt: now,
-      updatedBy: owner2Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
   ]);
 
-  console.log("   ✔ 3 tenants inserted");
-
-  // ── 7. Tenant Users ─────────────────────────────────────────────────────────
-  console.log("👥 Seeding tenant users...");
+  // ==================== TENANT USERS ====================
+  console.log("👨‍💼 Seeding tenant users...");
 
   await db.insert(schema.tenantUsers).values([
-    // Tenant 1 — Burger House Downtown
     {
-      userId: manager1Id,
+      userId: managerId,
       tenantId: tenant1Id,
       role: "STORE_MANAGER",
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
-      userId: cashier1Id,
+      userId: cashierId,
       tenantId: tenant1Id,
       role: "CASHIER",
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
-      userId: cook1Id,
+      userId: cookId,
       tenantId: tenant1Id,
       role: "COOK",
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
-    // Tenant 2 — Burger House Uptown
     {
-      userId: manager2Id,
+      userId: managerId,
       tenantId: tenant2Id,
       role: "STORE_MANAGER",
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
-      userId: cashier2Id,
-      tenantId: tenant2Id,
-      role: "CASHIER",
-      createdAt: now,
-      createdBy: owner1Id,
-      updatedAt: now,
-      updatedBy: owner1Id,
-    },
-    // Tenant 3 — Noodle Empire Central
-    {
-      userId: manager1Id,
-      tenantId: tenant3Id,
-      role: "STORE_MANAGER",
-      createdAt: now,
-      createdBy: owner2Id,
-      updatedAt: now,
-      updatedBy: owner2Id,
-    },
-    {
-      userId: cashier1Id,
+      userId: cashierId,
       tenantId: tenant3Id,
       role: "CASHIER",
-      createdAt: now,
-      createdBy: owner2Id,
-      updatedAt: now,
-      updatedBy: owner2Id,
-    },
-    {
-      userId: cook2Id,
-      tenantId: tenant3Id,
-      role: "COOK",
-      createdAt: now,
-      createdBy: owner2Id,
-      updatedAt: now,
-      updatedBy: owner2Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
   ]);
 
-  console.log("   ✔ 8 tenant users inserted");
-
-  // ── 8. Tenant Work Hours ────────────────────────────────────────────────────
+  // ==================== TENANT WORK HOURS ====================
   console.log("🕐 Seeding tenant work hours...");
 
   const workHours = [];
-  const allTenantIds = [
-    { id: tenant1Id, createdBy: owner1Id },
-    { id: tenant2Id, createdBy: owner1Id },
-    { id: tenant3Id, createdBy: owner2Id },
-  ];
+  // Tenant 1 - buka setiap hari (1-7, Senin-Minggu)
+  for (let day = 1; day <= 7; day++) {
+    workHours.push({
+      id: crypto.randomUUID(),
+      tenantId: tenant1Id,
+      dayOfMonth: day,
+      openHour: "08:00:00",
+      closeHour: "22:00:00",
+      isActive: true,
+      createdBy: managerId,
+      updatedBy: managerId,
+    });
+  }
 
-  for (const { id: tenantId, createdBy } of allTenantIds) {
-    for (let day = 1; day <= 7; day++) {
-      const isWeekend = day === 6 || day === 7;
-      workHours.push({
-        id: uuid(),
-        tenantId,
-        dayOfMonth: day,
-        openHour:  isWeekend ? "09:00:00" : "08:00:00",
-        closeHour: isWeekend ? "23:00:00" : "22:00:00",
-        isActive: true,
-        createdAt: now,
-        createdBy,
-        updatedAt: now,
-        updatedBy: createdBy,
-      });
-    }
+  // Tenant 2 - buka Senin-Jumat (1-5)
+  for (let day = 1; day <= 5; day++) {
+    workHours.push({
+      id: crypto.randomUUID(),
+      tenantId: tenant2Id,
+      dayOfMonth: day,
+      openHour: "09:00:00",
+      closeHour: "21:00:00",
+      isActive: true,
+      createdBy: managerId,
+      updatedBy: managerId,
+    });
+  }
+
+  // Tenant 3 - buka setiap hari
+  for (let day = 1; day <= 7; day++) {
+    workHours.push({
+      id: crypto.randomUUID(),
+      tenantId: tenant3Id,
+      dayOfMonth: day,
+      openHour: "07:00:00",
+      closeHour: "23:00:00",
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    });
   }
 
   await db.insert(schema.tenantWorkHours).values(workHours);
-  console.log(`   ✔ ${workHours.length} work hour records inserted`);
 
-  // ── 9. Menu Categories ──────────────────────────────────────────────────────
-  console.log("📂 Seeding menu categories...");
+  // ==================== MENU CATEGORIES ====================
+  console.log("📋 Seeding menu categories...");
+
+  const cat1Id = crypto.randomUUID();
+  const cat2Id = crypto.randomUUID();
+  const cat3Id = crypto.randomUUID();
+  const cat4Id = crypto.randomUUID();
+  const cat5Id = crypto.randomUUID();
 
   await db.insert(schema.menuCategories).values([
+    // Tenant 1 categories
     {
       id: cat1Id,
-      categoryName: "Burgers",
+      categoryName: "Makanan Utama",
       tenantId: tenant1Id,
       orderNumber: 1,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
       id: cat2Id,
-      categoryName: "Sides",
+      categoryName: "Minuman",
       tenantId: tenant1Id,
       orderNumber: 2,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
       id: cat3Id,
-      categoryName: "Drinks",
+      categoryName: "Dessert",
       tenantId: tenant1Id,
       orderNumber: 3,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
+    // Tenant 3 categories
     {
       id: cat4Id,
-      categoryName: "Noodles",
+      categoryName: "Kopi",
       tenantId: tenant3Id,
       orderNumber: 1,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
       id: cat5Id,
-      categoryName: "Appetizers",
+      categoryName: "Non-Kopi",
       tenantId: tenant3Id,
       orderNumber: 2,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
   ]);
 
-  console.log("   ✔ 5 menu categories inserted");
+  // ==================== MENUS ====================
+  console.log("🍽️ Seeding menus...");
 
-  // ── 10. Menus ───────────────────────────────────────────────────────────────
-  console.log("🍔 Seeding menus...");
+  const menu1Id = crypto.randomUUID();
+  const menu2Id = crypto.randomUUID();
+  const menu3Id = crypto.randomUUID();
+  const menu4Id = crypto.randomUUID();
+  const menu5Id = crypto.randomUUID();
+  const menu6Id = crypto.randomUUID();
+  const menu7Id = crypto.randomUUID();
+  const menu8Id = crypto.randomUUID();
 
   await db.insert(schema.menus).values([
-    // ── Burgers ──
+    // Makanan Utama - Tenant 1
     {
       id: menu1Id,
       categoryId: cat1Id,
       tenantId: tenant1Id,
-      name: "Classic Burger",
-      description: "Juicy beef patty with lettuce, tomato, and pickles",
-      imagePath: "/images/menus/classic-burger.jpg",
-      price: 8.99,
+      name: "Nasi Goreng Spesial",
+      description: "Nasi goreng dengan telur, ayam, dan sayuran segar",
+      imagePath: "/images/nasi-goreng.jpg",
+      price: 35000,
       discount: 0,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
       id: menu2Id,
       categoryId: cat1Id,
       tenantId: tenant1Id,
-      name: "Cheese Burger",
-      description: "Classic burger topped with melted cheddar cheese",
-      imagePath: "/images/menus/cheese-burger.jpg",
-      price: 10.99,
-      discount: 0.5,
+      name: "Mie Ayam Bakso",
+      description: "Mie ayam dengan bakso sapi pilihan dan kuah kaldu",
+      imagePath: "/images/mie-ayam.jpg",
+      price: 28000,
+      discount: 5000,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
       id: menu3Id,
       categoryId: cat1Id,
       tenantId: tenant1Id,
-      name: "BBQ Burger",
-      description: "Smoky BBQ sauce with crispy bacon and onion rings",
-      imagePath: "/images/menus/bbq-burger.jpg",
-      price: 12.99,
-      discount: 1.0,
+      name: "Ayam Bakar Madu",
+      description: "Ayam bakar dengan bumbu madu dan rempah pilihan",
+      imagePath: "/images/ayam-bakar.jpg",
+      price: 45000,
+      discount: 0,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
-    // ── Sides ──
+    // Minuman - Tenant 1
     {
       id: menu4Id,
       categoryId: cat2Id,
       tenantId: tenant1Id,
-      name: "French Fries",
-      description: "Golden crispy fries lightly salted",
-      imagePath: "/images/menus/french-fries.jpg",
-      price: 3.99,
+      name: "Es Teh Manis",
+      description: "Teh manis segar dengan es batu",
+      imagePath: "/images/es-teh.jpg",
+      price: 8000,
       discount: 0,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
       id: menu5Id,
       categoryId: cat2Id,
       tenantId: tenant1Id,
-      name: "Onion Rings",
-      description: "Crispy battered onion rings with dipping sauce",
-      imagePath: "/images/menus/onion-rings.jpg",
-      price: 4.49,
+      name: "Jus Alpukat",
+      description: "Jus alpukat segar dengan susu dan madu",
+      imagePath: "/images/jus-alpukat.jpg",
+      price: 18000,
       discount: 0,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
-    // ── Drinks ──
+    // Dessert - Tenant 1
     {
       id: menu6Id,
       categoryId: cat3Id,
       tenantId: tenant1Id,
-      name: "Cola",
-      description: "Chilled classic cola drink",
-      imagePath: "/images/menus/cola.jpg",
-      price: 2.49,
-      discount: 0,
+      name: "Es Krim Coklat",
+      description: "Es krim coklat premium dengan topping sprinkle",
+      imagePath: "/images/es-krim.jpg",
+      price: 22000,
+      discount: 2000,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
+    // Kopi - Tenant 3
     {
       id: menu7Id,
-      categoryId: cat3Id,
-      tenantId: tenant1Id,
-      name: "Lemonade",
-      description: "Freshly squeezed lemonade with mint",
-      imagePath: "/images/menus/lemonade.jpg",
-      price: 3.49,
+      categoryId: cat4Id,
+      tenantId: tenant3Id,
+      name: "Americano",
+      description: "Espresso dengan air panas, rasa kopi yang kuat",
+      imagePath: "/images/americano.jpg",
+      price: 25000,
       discount: 0,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
-    // ── Noodles ──
+    // Non-Kopi - Tenant 3
     {
       id: menu8Id,
-      categoryId: cat4Id,
-      tenantId: tenant3Id,
-      name: "Tonkotsu Ramen",
-      description: "Rich pork bone broth with chashu and soft-boiled egg",
-      imagePath: "/images/menus/ramen.jpg",
-      price: 13.99,
-      discount: 0,
-      isAvailable: true,
-      isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: menu9Id,
-      categoryId: cat4Id,
-      tenantId: tenant3Id,
-      name: "Pad Thai",
-      description: "Stir-fried rice noodles with shrimp, peanuts, and lime",
-      imagePath: "/images/menus/pad-thai.jpg",
-      price: 11.99,
-      discount: 1.0,
-      isAvailable: true,
-      isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    // ── Appetizers ──
-    {
-      id: menu10Id,
       categoryId: cat5Id,
       tenantId: tenant3Id,
-      name: "Spring Rolls",
-      description: "Crispy vegetable spring rolls with sweet chili sauce",
-      imagePath: "/images/menus/spring-rolls.jpg",
-      price: 6.99,
+      name: "Matcha Latte",
+      description: "Matcha premium dengan susu oat yang creamy",
+      imagePath: "/images/matcha-latte.jpg",
+      price: 32000,
       discount: 0,
       isAvailable: true,
       isActive: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
   ]);
 
-  console.log("   ✔ 10 menus inserted");
-
-  // ── 11. Addon Groups ────────────────────────────────────────────────────────
+  // ==================== ADDON GROUPS ====================
   console.log("➕ Seeding addon groups...");
+
+  const addonGroup1Id = crypto.randomUUID();
+  const addonGroup2Id = crypto.randomUUID();
+  const addonGroup3Id = crypto.randomUUID();
+  const addonGroup4Id = crypto.randomUUID();
 
   await db.insert(schema.addonGroups).values([
     {
-      id: ag1Id,
+      id: addonGroup1Id,
       menuId: menu1Id,
-      name: "Patty Size",
+      name: "Pilihan Protein",
       isRequired: true,
       maxSelection: 1,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
-      id: ag2Id,
+      id: addonGroup2Id,
       menuId: menu1Id,
-      name: "Extras",
+      name: "Tingkat Kepedasan",
       isRequired: false,
-      maxSelection: 3,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      maxSelection: 1,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
-      id: ag3Id,
-      menuId: menu4Id,
-      name: "Size",
+      id: addonGroup3Id,
+      menuId: menu7Id,
+      name: "Pilihan Susu",
+      isRequired: false,
+      maxSelection: 1,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: addonGroup4Id,
+      menuId: menu7Id,
+      name: "Ukuran",
       isRequired: true,
       maxSelection: 1,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: ag4Id,
-      menuId: menu8Id,
-      name: "Toppings",
-      isRequired: false,
-      maxSelection: 4,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: ag5Id,
-      menuId: menu9Id,
-      name: "Spice Level",
-      isRequired: true,
-      maxSelection: 1,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
   ]);
 
-  console.log("   ✔ 5 addon groups inserted");
-
-  // ── 12. Addons ──────────────────────────────────────────────────────────────
+  // ==================== ADDONS ====================
   console.log("🧩 Seeding addons...");
 
   await db.insert(schema.addons).values([
-    // ── Patty Size ──
+    // Pilihan Protein - Nasi Goreng
     {
-      id: uuid(),
-      addonGroupId: ag1Id,
-      name: "Regular",
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup1Id,
+      name: "Ayam",
       price: 0,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
-      id: uuid(),
-      addonGroupId: ag1Id,
-      name: "Double",
-      price: 2.5,
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup1Id,
+      name: "Udang",
+      price: 8000,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
-    // ── Extras ──
     {
-      id: uuid(),
-      addonGroupId: ag2Id,
-      name: "Extra Cheese",
-      price: 0.99,
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup1Id,
+      name: "Sapi",
+      price: 10000,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
+    // Tingkat Kepedasan - Nasi Goreng
     {
-      id: uuid(),
-      addonGroupId: ag2Id,
-      name: "Bacon",
-      price: 1.49,
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup2Id,
+      name: "Tidak Pedas",
+      price: 0,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
     {
-      id: uuid(),
-      addonGroupId: ag2Id,
-      name: "Avocado",
-      price: 1.99,
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup2Id,
+      name: "Pedas Sedang",
+      price: 0,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
     },
-    // ── Fries Size ──
     {
-      id: uuid(),
-      addonGroupId: ag3Id,
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup2Id,
+      name: "Pedas Banget",
+      price: 0,
+      isAvailable: true,
+      createdBy: managerId,
+      updatedBy: managerId,
+    },
+    // Pilihan Susu - Americano
+    {
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup3Id,
+      name: "Susu Sapi",
+      price: 5000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup3Id,
+      name: "Susu Oat",
+      price: 8000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup3Id,
+      name: "Susu Almond",
+      price: 10000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Ukuran - Americano
+    {
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup4Id,
       name: "Small",
       price: 0,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
-      id: uuid(),
-      addonGroupId: ag3Id,
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup4Id,
       name: "Medium",
-      price: 0.75,
+      price: 5000,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
     {
-      id: uuid(),
-      addonGroupId: ag3Id,
+      id: crypto.randomUUID(),
+      addonGroupId: addonGroup4Id,
       name: "Large",
-      price: 1.25,
+      price: 10000,
       isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    // ── Ramen Toppings ──
-    {
-      id: uuid(),
-      addonGroupId: ag4Id,
-      name: "Extra Chashu",
-      price: 2.0,
-      isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: uuid(),
-      addonGroupId: ag4Id,
-      name: "Soft Boiled Egg",
-      price: 1.0,
-      isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: uuid(),
-      addonGroupId: ag4Id,
-      name: "Bamboo Shoots",
-      price: 0.75,
-      isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: uuid(),
-      addonGroupId: ag4Id,
-      name: "Nori",
-      price: 0.5,
-      isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    // ── Spice Level ──
-    {
-      id: uuid(),
-      addonGroupId: ag5Id,
-      name: "Mild",
-      price: 0,
-      isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: uuid(),
-      addonGroupId: ag5Id,
-      name: "Medium",
-      price: 0,
-      isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
-    },
-    {
-      id: uuid(),
-      addonGroupId: ag5Id,
-      name: "Hot",
-      price: 0,
-      isAvailable: true,
-      createdAt: now,
-      createdBy: manager1Id,
-      updatedAt: now,
-      updatedBy: manager1Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
     },
   ]);
 
-  console.log("   ✔ 15 addons inserted");
-
-  // ── 13. Tables ──────────────────────────────────────────────────────────────
+  // ==================== TABLES ====================
   console.log("🪑 Seeding tables...");
 
-  await db.insert(schema.tables).values([
-    // Tenant 1 — 5 tables
-    { id: t1_table1Id, number: 1, tenantId: tenant1Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-    { id: t1_table2Id, number: 2, tenantId: tenant1Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-    { id: t1_table3Id, number: 3, tenantId: tenant1Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-    { id: t1_table4Id, number: 4, tenantId: tenant1Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-    { id: t1_table5Id, number: 5, tenantId: tenant1Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-    // Tenant 3 — 3 tables
-    { id: t3_table1Id, number: 1, tenantId: tenant3Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-    { id: t3_table2Id, number: 2, tenantId: tenant3Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-    { id: t3_table3Id, number: 3, tenantId: tenant3Id, createdAt: now, createdBy: manager1Id, updatedAt: now, updatedBy: manager1Id },
-  ]);
+  const tableIds = [];
+  const tablesToInsert = [];
 
-  console.log("   ✔ 8 tables inserted");
+  // Tenant 1 - 10 meja
+  for (let i = 1; i <= 10; i++) {
+    const tableId = crypto.randomUUID();
+    tableIds.push({ id: tableId, tenantId: tenant1Id });
+    tablesToInsert.push({
+      id: tableId,
+      number: i,
+      tenantId: tenant1Id,
+      createdBy: managerId,
+      updatedBy: managerId,
+    });
+  }
 
-  // ── 14. Sessions ────────────────────────────────────────────────────────────
-  console.log("📋 Seeding sessions...");
+  // Tenant 3 - 5 meja
+  for (let i = 1; i <= 5; i++) {
+    const tableId = crypto.randomUUID();
+    tableIds.push({ id: tableId, tenantId: tenant3Id });
+    tablesToInsert.push({
+      id: tableId,
+      number: i,
+      tenantId: tenant3Id,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    });
+  }
 
-  const todayStr     = now.toISOString().split("T")[0];
-  const yesterdayStr = daysAgo(1).toISOString().split("T")[0];
+  await db.insert(schema.tables).values(tablesToInsert);
+
+  // ==================== SESSIONS ====================
+  console.log("📅 Seeding sessions...");
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const session1Id = crypto.randomUUID();
+  const session2Id = crypto.randomUUID();
+
+  // Ambil beberapa table id untuk tenant 1
+  const tenant1Tables = tableIds.filter((t) => t.tenantId === tenant1Id);
+  const tenant3Tables = tableIds.filter((t) => t.tenantId === tenant3Id);
 
   await db.insert(schema.sessions).values([
     {
       id: session1Id,
       tenantId: tenant1Id,
-      tableId: t1_table1Id,
-      trxDate: todayStr,
+      tableId: tenant1Tables[0].id,
+      trxDate: today,
       isActive: true,
-      createdAt: now,
-      finishedAt: null,
     },
     {
       id: session2Id,
-      tenantId: tenant1Id,
-      tableId: t1_table2Id,
-      trxDate: yesterdayStr,
-      isActive: false,
-      createdAt: daysAgo(1),
-      finishedAt: daysAgo(1),
-    },
-    {
-      id: session3Id,
       tenantId: tenant3Id,
-      tableId: t3_table1Id,
-      trxDate: todayStr,
+      tableId: tenant3Tables[0].id,
+      trxDate: today,
       isActive: true,
-      createdAt: now,
-      finishedAt: null,
     },
   ]);
 
-  console.log("   ✔ 3 sessions inserted");
+  // ==================== ORDERS ====================
+  console.log("🛒 Seeding orders...");
 
-  // ── 15. Orders ──────────────────────────────────────────────────────────────
-  console.log("🧾 Seeding orders...");
+  const order1Id = crypto.randomUUID();
+  const order2Id = crypto.randomUUID();
 
   await db.insert(schema.orders).values([
     {
       id: order1Id,
       sessionId: session1Id,
-      total_amount: 2498,
-      paymentUrl: "https://payment.example.com/pay/order1",
+      total_amount: 78000,
+      paymentUrl: "https://payment.example.com/pay/order-001",
       paymentStatus: "PAID",
-      createdAt: now,
     },
     {
       id: order2Id,
       sessionId: session2Id,
-      total_amount: 1347,
-      paymentUrl: "https://payment.example.com/pay/order2",
-      paymentStatus: "PAID",
-      createdAt: daysAgo(1),
-    },
-    {
-      id: order3Id,
-      sessionId: session3Id,
-      total_amount: 3197,
-      paymentUrl: "https://payment.example.com/pay/order3",
+      total_amount: 57000,
+      paymentUrl: "https://payment.example.com/pay/order-002",
       paymentStatus: "PENDING",
-      createdAt: now,
     },
   ]);
 
-  console.log("   ✔ 3 orders inserted");
-
-  // ── 16. Order Items ─────────────────────────────────────────────────────────
-  console.log("🍟 Seeding order items...");
+  // ==================== ORDER ITEMS ====================
+  console.log("📝 Seeding order items...");
 
   await db.insert(schema.orderItems).values([
-    // Order 1 — Classic Burger + Fries + Cola
-    { id: uuid(), orderId: order1Id, menuId: menu1Id, quantity: 2, note: "No pickles",   createdAt: now       },
-    { id: uuid(), orderId: order1Id, menuId: menu4Id, quantity: 2, note: null,            createdAt: now       },
-    { id: uuid(), orderId: order1Id, menuId: menu6Id, quantity: 2, note: null,            createdAt: now       },
-    // Order 2 — Cheese Burger + Lemonade
-    { id: uuid(), orderId: order2Id, menuId: menu2Id, quantity: 1, note: "Extra sauce",  createdAt: daysAgo(1) },
-    { id: uuid(), orderId: order2Id, menuId: menu7Id, quantity: 1, note: null,            createdAt: daysAgo(1) },
-    // Order 3 — Ramen + Spring Rolls + Pad Thai
-    { id: uuid(), orderId: order3Id, menuId: menu8Id,  quantity: 2, note: "Extra spicy", createdAt: now       },
-    { id: uuid(), orderId: order3Id, menuId: menu10Id, quantity: 1, note: null,           createdAt: now       },
-    { id: uuid(), orderId: order3Id, menuId: menu9Id,  quantity: 1, note: "No peanuts",  createdAt: now       },
+    {
+      id: crypto.randomUUID(),
+      orderId: order1Id,
+      menuId: menu1Id,
+      quantity: 2,
+      note: "Tidak pakai bawang",
+    },
+    {
+      id: crypto.randomUUID(),
+      orderId: order1Id,
+      menuId: menu4Id,
+      quantity: 2,
+      note: null,
+    },
+    {
+      id: crypto.randomUUID(),
+      orderId: order2Id,
+      menuId: menu7Id,
+      quantity: 1,
+      note: "Less ice",
+    },
+    {
+      id: crypto.randomUUID(),
+      orderId: order2Id,
+      menuId: menu8Id,
+      quantity: 1,
+      note: null,
+    },
   ]);
 
-  console.log("   ✔ 8 order items inserted");
-
-  // ── Done ────────────────────────────────────────────────────────────────────
-  console.log(`
-✅ Seeding complete!
-
-📊 Summary
-──────────────────────────────────
-   Users                : 11
-   Subscription Config  : 4
-   Organizations        : 2
-   Subscriptions        : 3
-   Organization Users   : 5
-   Tenants              : 3
-   Tenant Users         : 8
-   Work Hours           : ${workHours.length}
-   Menu Categories      : 5
-   Menus                : 10
-   Addon Groups         : 5
-   Addons               : 15
-   Tables               : 8
-   Sessions             : 3
-   Orders               : 3
-   Order Items          : 8
-──────────────────────────────────
-
-🔑 All passwords : password123
-
-📧 Test accounts
-──────────────────────────────────
-   superadmin@example.com  — Super Admin
-   john@example.com        — Org Owner   (Burger House)
-   jane@example.com        — Org Owner   (Noodle Empire)
-   bob@example.com         — Org Admin
-   alice@example.com       — Org Staff
-   sara@example.com        — Store Manager
-   tom@example.com         — Store Manager
-   mike@example.com        — Cashier
-   emma@example.com        — Cashier
-   lisa@example.com        — Cook
-   david@example.com       — Cook
-──────────────────────────────────
-  `);
+  console.log("✅ Seed completed successfully!");
+  await connection.end();
 }
 
-seed()
-  .catch((err) => {
-    console.error("❌ Seed failed:", err);
-    process.exit(1);
-  })
-  .finally(() => connection.end());
+seed().catch((err) => {
+  console.error("❌ Seed failed:", err);
+  process.exit(1);
+});

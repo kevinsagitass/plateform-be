@@ -19,6 +19,7 @@ export const addTenantSchema = z.object({
           /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/,
           "Invalid time format (HH:MM or HH:MM:SS)"
         ),
+      isActive: z.boolean().optional(),
     })
   ),
 });
@@ -27,6 +28,7 @@ export const updateTenantSchema = z.object({
   tenantId: z.string(),
   tenantName: z.string().min(3).optional(),
   location: z.string().min(10).optional(),
+  isActive: z.boolean().optional(),
   tenantWorkHours: z
     .array(
       z.object({
@@ -46,6 +48,7 @@ export const updateTenantSchema = z.object({
             "Invalid time format (HH:MM or HH:MM:SS)"
           )
           .optional(),
+        isActive: z.boolean().optional(),
       })
     )
     .optional(),
