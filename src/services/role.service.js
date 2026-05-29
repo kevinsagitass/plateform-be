@@ -1,5 +1,10 @@
 import { db } from "../db/index.js";
-import { organizations, organizationUsers, users } from "../db/schema.js";
+import {
+  organizations,
+  organizationUsers,
+  tenantUsers,
+  users,
+} from "../db/schema.js";
 import { and, eq, ne } from "drizzle-orm";
 import { generateInviteToken } from "../helpers/inviteToken.helper.js";
 import { sendInviteEmail } from "../helpers/sendOrganizationInviteMail.js";
@@ -17,12 +22,7 @@ export const getAllOrganizationUsersRoleData = async (id) => {
       })
       .from(organizationUsers)
       .leftJoin(users, eq(organizationUsers.userId, users.id))
-      .where(
-        and(
-          eq(organizationUsers.organizationId, id),
-          ne(organizationUsers.role, "STAFF")
-        )
-      );
+      .where(eq(organizationUsers.organizationId, id));
 
     return organizationsUsersRoleData;
   } catch (err) {
@@ -114,7 +114,6 @@ export const acceptOrganizationInviteData = async (data) => {
   try {
     const { token, username, name, password } = data;
 
-    // ── 1. Verify token ──────────────────────────────────────────────────────
     let payload;
     try {
       payload = verifyInviteToken(token);
@@ -124,11 +123,9 @@ export const acceptOrganizationInviteData = async (data) => {
 
     const { email, organizationId, role, inviterUserId } = payload;
 
-    // ── 2. Check if user already exists ─────────────────────────────────────
     let [user] = await db.select().from(users).where(eq(users.email, email));
 
     if (user) {
-      // User exists — just add them to the organization
       const [alreadyMember] = await db
         .select()
         .from(organizationUsers)
@@ -146,7 +143,6 @@ export const acceptOrganizationInviteData = async (data) => {
         };
       }
     } else {
-      // ── 3. Register new user ───────────────────────────────────────────────
       if (!username || !name || !password) {
         throw {
           message: "Username, name, and password are required",
@@ -170,7 +166,6 @@ export const acceptOrganizationInviteData = async (data) => {
       [user] = await db.select().from(users).where(eq(users.id, newUserId));
     }
 
-    // ── 4. Add user to organization ──────────────────────────────────────────
     await db.insert(organizationUsers).values({
       userId: user.id,
       organizationId,
@@ -200,6 +195,30 @@ export const removeOrganizationUserAccessData = async (data) => {
       );
 
     return result;
+  } catch (err) {
+    console.log(err);
+    throw {
+      message: err.message,
+    };
+  }
+};
+
+export const getAllTenantUsersRoleData = async (id) => {
+  try {
+    const tenantUsersRoleData = await db
+      .selectDistinct({
+        userId: tenantUsers.userId,
+        tenantId: tenantUsers.tenantId,
+        name: users.name,
+        email: users.email,
+        role: tenantUsers.role,
+        joinedAt: tenantUsers.createdAt,
+      })
+      .from(tenantUsers)
+      .leftJoin(users, eq(tenantUsers.userId, users.id))
+      .where(eq(tenantUsers.tenantId, id));
+
+    return tenantUsersRoleData;
   } catch (err) {
     console.log(err);
     throw {

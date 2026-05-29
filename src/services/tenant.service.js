@@ -105,12 +105,7 @@ export const getTenantsByOrganizationData = async (organizationId, userId) => {
         tenants,
         eq(organizationUsers.organizationId, tenants.organizationId)
       )
-      .where(
-        and(
-          eq(organizationUsers.userId, userId),
-          ne(organizationUsers.role, "STAFF")
-        )
-      );
+      .where(eq(organizationUsers.userId, userId));
 
     const tenantIds = [
       ...access.map((acc) => acc.tenantId),

@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  authorizeAction,
   authorizeOrganizationAccess,
   isAuthenticated,
 } from "../middlewares/auth.middleware.js";
@@ -17,21 +16,20 @@ const router = express.Router();
 
 router.use(isAuthenticated);
 
-router.get("/", authorizeAction("OWNER", "ADMIN"), getAllUserOrganizations);
+router.get("/", getAllUserOrganizations);
 router.get(
   "/:id",
   authorizeOrganizationAccess((req) => req.params.id, "OWNER", "ADMIN"),
   getOrganizationDetail
 );
 router.get(
-  "/:id/ROLE",
+  "/:id/role",
   authorizeOrganizationAccess((req) => req.params.id),
   getOrganizationUserRole
 );
 router.post(
   "/",
   isSubscriptionActive((req) => req.body.organizationId, null),
-  authorizeAction("OWNER"),
   addOrganization
 );
 router.patch(

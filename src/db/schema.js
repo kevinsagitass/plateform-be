@@ -1,3 +1,4 @@
+import { foreignKey } from "drizzle-orm/gel-core";
 import {
   mysqlTable,
   int,
@@ -90,7 +91,7 @@ export const organizationUsers = mysqlTable("organization_users", {
     .references(() => organizations.id, {
       onDelete: "cascade",
     }),
-  role: mysqlEnum("role", ["OWNER", "ADMIN", "STAFF"]).notNull(),
+  role: mysqlEnum("role", ["OWNER", "ADMIN"]).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -124,6 +125,108 @@ export const tenantWorkHours = mysqlTable("tenant_work_hours", {
   isActive: boolean("is_active").default(true),
   ...auditColumns,
 });
+
+export const organizationMenuCategories = mysqlTable(
+  "organization_menu_categories",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    categoryName: varchar("category_name", { length: 255 }).notNull(),
+    organizationId: varchar("organization_id", { length: 36 })
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "cascade",
+      }),
+    orderNumber: int("order_number").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    ...auditColumns,
+  },
+  (table) => ({
+    organizationOrderUnique: uniqueIndex("organization_order_unique").on(
+      table.organizationId,
+      table.orderNumber
+    ),
+  })
+);
+
+export const organizationMenus = mysqlTable(
+  "organization_menus",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    organizationCategoryId: varchar("organization_category_id", {
+      length: 36,
+    }).notNull(),
+    organizationId: varchar("organization_id", { length: 36 })
+      .notNull()
+      .references(() => organizations.id, {
+        onDelete: "cascade",
+      }),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: varchar("description", { length: 255 }).notNull(),
+    imagePath: varchar("image_path", { length: 255 }).notNull(),
+    price: double("price").notNull(),
+    discount: double("discount").notNull(),
+    isAvailable: boolean("is_available").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
+    ...auditColumns,
+  },
+  (table) => ({
+    categoryFk: foreignKey({
+      name: "org_menus_category_id_fk",
+      columns: [table.organizationCategoryId],
+      foreignColumns: [organizationMenuCategories.id],
+    }).onDelete("cascade"),
+  })
+);
+
+export const organizationAddonGroups = mysqlTable(
+  "organization_addon_groups",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    organizationMenuId: varchar("organization_menu_id", {
+      length: 36,
+    }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    isRequired: boolean("is_required").notNull().default(false),
+    maxSelection: int("max_selection").notNull().default(1),
+    ...auditColumns,
+  },
+  (table) => ({
+    categoryFk: foreignKey({
+      name: "org_addon_grp_menu_fk",
+      columns: [table.organizationMenuId],
+      foreignColumns: [organizationMenus.id],
+    }).onDelete("cascade"),
+  })
+);
+
+export const organizationAddons = mysqlTable(
+  "organization_addons",
+  {
+    id: varchar("id", { length: 36 })
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    organizationAddonGroupId: varchar("organization_addon_group_id", {
+      length: 36,
+    }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    price: double("price").notNull().default(0),
+    isAvailable: boolean("is_available").notNull().default(true),
+    ...auditColumns,
+  },
+  (table) => ({
+    categoryFk: foreignKey({
+      name: "org_addon_group_fk",
+      columns: [table.organizationAddonGroupId],
+      foreignColumns: [organizationAddonGroups.id],
+    }).onDelete("cascade"),
+  })
+);
 
 export const menuCategories = mysqlTable(
   "menu_categories",

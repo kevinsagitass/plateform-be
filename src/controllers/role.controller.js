@@ -5,9 +5,12 @@ import {
 } from "../schemas/role.schema.js";
 import {
   getAllOrganizationUsersRoleData,
+  getAllTenantUsersRoleData,
   inviteOrganizationMemberData,
   removeOrganizationUserAccessData,
 } from "../services/role.service.js";
+
+// ===== ORGANIZATION ROLES =====
 
 export const getAllOrganizationUsersRole = async (req, res) => {
   try {
@@ -77,5 +80,19 @@ export const removeOrganizationUserAccess = async (req, res) => {
     return successResponse(res, 200, "success", result);
   } catch (error) {
     throw error;
+  }
+};
+
+
+// ===== TENANT ROLES =====
+
+export const getAllTenantUsersRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userTenants = await getAllTenantUsersRoleData(id);
+
+    return successResponse(res, 200, "success", userTenants);
+  } catch (err) {
+    throw err;
   }
 };

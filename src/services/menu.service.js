@@ -13,7 +13,7 @@ export const getAllMenuCategoriesData = async (tenantId) => {
     const data = await db
       .select({
         id: menuCategories.id,
-        cayegoryName: menuCategories.categoryName,
+        categoryName: menuCategories.categoryName,
         isActive: menuCategories.isActive,
         createdAt: menuCategories.createdAt,
       })

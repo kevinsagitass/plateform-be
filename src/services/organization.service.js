@@ -4,39 +4,52 @@ import {
   organizationUsers,
   subscriptions,
   tenants,
+  tenantUsers,
 } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
-import { addDays } from "../helpers/date.helper.js";
 import { getHighestRole } from "../helpers/role.helper.js";
+import { union } from "drizzle-orm/mysql-core";
 
 export const getAllUserOrganizationsData = async (user) => {
   try {
-    const organizationsData = await db
-      .selectDistinct({
-        organizationId: organizations.id,
-        organizationName: organizations.name,
-        isActive: organizations.isActive,
-        totalStaff: db.$count(
-          organizationUsers,
-          and(
-            eq(organizationUsers.organizationId, organizations.id),
-            eq(organizationUsers.role, "STAFF")
-          )
-        ),
-        totalTenant: db.$count(
-          tenants,
-          and(
-            eq(tenants.organizationId, organizations.id),
-            eq(tenants.isActive, true)
-          )
-        ),
-      })
-      .from(organizationUsers)
-      .leftJoin(
-        organizations,
-        eq(organizationUsers.organizationId, organizations.id)
-      )
-      .where(eq(organizationUsers.userId, user.id));
+    const organizationsData = await union(
+      db
+        .selectDistinct({
+          organizationId: organizations.id,
+          organizationName: organizations.name,
+          isActive: organizations.isActive,
+          totalTenant: db.$count(
+            tenants,
+            and(
+              eq(tenants.organizationId, organizations.id),
+              eq(tenants.isActive, true)
+            )
+          ),
+        })
+        .from(organizationUsers)
+        .leftJoin(
+          organizations,
+          eq(organizationUsers.organizationId, organizations.id)
+        )
+        .where(eq(organizationUsers.userId, user.id)),
+      db
+        .selectDistinct({
+          organizationId: organizations.id,
+          organizationName: organizations.name,
+          isActive: organizations.isActive,
+          totalTenant: db.$count(
+            tenants,
+            and(
+              eq(tenants.organizationId, organizations.id),
+              eq(tenants.isActive, true)
+            )
+          ),
+        })
+        .from(tenantUsers)
+        .leftJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+        .leftJoin(organizations, eq(tenants.organizationId, organizations.id))
+        .where(eq(tenantUsers.userId, user.id))
+    );
 
     return organizationsData;
   } catch (err) {

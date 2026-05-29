@@ -1,10 +1,12 @@
 import express from "express";
 import {
   authorizeOrganizationAccess,
+  authorizeTenantAccess,
   isAuthenticated,
 } from "../middlewares/auth.middleware.js";
 import {
   getAllOrganizationUsersRole,
+  getAllTenantUsersRole,
   inviteOrganizationMember,
   removeOrganizationUserAccess,
 } from "../controllers/role.controller.js";
@@ -13,6 +15,7 @@ const router = express.Router();
 
 router.use(isAuthenticated);
 
+// ===== ORGANIZATION ROLES =====
 router.get(
   "/organizations/:id",
   authorizeOrganizationAccess((req) => req.params.id, "OWNER", "ADMIN"),
@@ -24,6 +27,19 @@ router.post(
   isSubscriptionActive((req) => req.params.id, null),
   authorizeOrganizationAccess((req) => req.params.id, "OWNER"),
   inviteOrganizationMember
+);
+
+// ===== TENANT ROLES =====
+
+router.get(
+  "/tenants/:id",
+  authorizeTenantAccess(
+    (req) => req.params.id,
+    "OWNER",
+    "ADMIN",
+    "STORE_MANAGER"
+  ),
+  getAllTenantUsersRole
 );
 
 router.post("/organizations/invite/accept", async (req, res) => {

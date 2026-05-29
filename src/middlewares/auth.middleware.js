@@ -66,14 +66,29 @@ export const authorizeOrganizationAccess =
         );
 
       if (access.length === 0) {
-        if (req.file) {
-          await fs.unlink(req.file.path);
-        }
+        // No Access in Organization Check if a Staff ?
+        const staffAccess = await db
+          .select()
+          .from(tenantUsers)
+          .leftJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+          .where(
+            and(
+              eq(tenantUsers.userId, user.id),
+              eq(tenants.organizationId, organizationId)
+            )
+          );
 
-        return res.status(403).json({
-          status: "failed",
-          message: "Forbidden",
-        });
+        if (staffAccess === 0) {
+          // No Staff Access. Deny to Resource
+          if (req.file) {
+            await fs.unlink(req.file.path);
+          }
+
+          return res.status(403).json({
+            status: "failed",
+            message: "Forbidden",
+          });
+        }
       }
 
       if (roles.length !== 0) {
@@ -142,8 +157,7 @@ export const authorizeTenantAccess =
         .where(
           and(
             eq(organizationUsers.userId, user.id),
-            eq(organizationUsers.organizationId, tenant.organizationId),
-            ne(organizationUsers.role, "STAFF")
+            eq(organizationUsers.organizationId, tenant.organizationId)
           )
         );
 
@@ -196,9 +210,3 @@ export const authorizeTenantAccess =
       next(err);
     }
   };
-
-export const authorizeAction = (...roles) => {
-  return (req, res, next) => {
-    next();
-  };
-};
