@@ -16,3 +16,14 @@ export const getHighestRole = (roles) => {
     ROLE_HIERARCHY[current] < ROLE_HIERARCHY[highest] ? current : highest
   );
 };
+
+export const getLowestRole = (roles) => {
+  if (!roles || roles.length === 0) return null;
+
+  const validRoles = roles.filter((role) => role in ROLE_HIERARCHY);
+  if (validRoles.length === 0) return null;
+
+  return validRoles.reduce((lowest, current) =>
+    ROLE_HIERARCHY[current] > ROLE_HIERARCHY[lowest] ? current : lowest
+  );
+};

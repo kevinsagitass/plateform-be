@@ -9,6 +9,8 @@ import {
   getAllTenantUsersRole,
   inviteOrganizationMember,
   removeOrganizationUserAccess,
+  removeTenantUserAccess,
+  updateTenantUserAccess,
 } from "../controllers/role.controller.js";
 import { isSubscriptionActive } from "../middlewares/subscription.middleware.js";
 const router = express.Router();
@@ -55,10 +57,28 @@ router.post("/organizations/invite/accept", async (req, res) => {
   }
 });
 
+router.patch(
+  "/:organizationId/tenants/:tenantId/:userId/:role",
+  isSubscriptionActive((req) => req.params.organizationId, null),
+  authorizeTenantAccess(
+    (req) => req.params.tenantId,
+    "OWNER",
+    "ADMIN",
+    "STORE_MANAGER"
+  ),
+  updateTenantUserAccess
+);
+
 router.delete(
-  "/organizations/:id/:userId/:role",
-  isSubscriptionActive((req) => req.params.id, null),
-  removeOrganizationUserAccess
+  "/:organizationId/tenants/:tenantId/:userId/:role",
+  isSubscriptionActive((req) => req.params.organizationId, null),
+  authorizeTenantAccess(
+    (req) => req.params.tenantId,
+    "OWNER",
+    "ADMIN",
+    "STORE_MANAGER"
+  ),
+  removeTenantUserAccess
 );
 
 export default router;

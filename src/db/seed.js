@@ -34,14 +34,13 @@ async function seed() {
   const managerId = crypto.randomUUID();
   const cashierId = crypto.randomUUID();
   const cookId = crypto.randomUUID();
-  const staffId = crypto.randomUUID();
 
   // Insert admin first (self-reference workaround)
   await db.insert(schema.users).values({
     id: adminId,
     username: "superadmin",
     name: "Super Admin",
-    email: "admin@example.com",
+    email: "superadmin@example.com",
     password: hashedPassword,
     createdBy: adminId,
     updatedBy: adminId,
@@ -52,7 +51,7 @@ async function seed() {
       id: ownerId,
       username: "owner1",
       name: "Owner Satu",
-      email: "owner@example.com",
+      email: "owner1@example.com",
       password: hashedPassword,
       createdBy: adminId,
       updatedBy: adminId,
@@ -61,7 +60,7 @@ async function seed() {
       id: managerId,
       username: "manager1",
       name: "Manager Satu",
-      email: "manager@example.com",
+      email: "manager1@example.com",
       password: hashedPassword,
       createdBy: adminId,
       updatedBy: adminId,
@@ -70,7 +69,7 @@ async function seed() {
       id: cashierId,
       username: "cashier1",
       name: "Cashier Satu",
-      email: "cashier@example.com",
+      email: "cashier1@example.com",
       password: hashedPassword,
       createdBy: adminId,
       updatedBy: adminId,
@@ -79,16 +78,7 @@ async function seed() {
       id: cookId,
       username: "cook1",
       name: "Cook Satu",
-      email: "cook@example.com",
-      password: hashedPassword,
-      createdBy: adminId,
-      updatedBy: adminId,
-    },
-    {
-      id: staffId,
-      username: "staff1",
-      name: "Staff Satu",
-      email: "staff@example.com",
+      email: "cook1@example.com",
       password: hashedPassword,
       createdBy: adminId,
       updatedBy: adminId,
@@ -149,6 +139,7 @@ async function seed() {
   ]);
 
   // ==================== ORGANIZATION USERS ====================
+  // Role hanya: OWNER | ADMIN (tidak ada STAFF di schema baru)
   console.log("👥 Seeding organization users...");
 
   await db.insert(schema.organizationUsers).values([
@@ -163,14 +154,14 @@ async function seed() {
       role: "ADMIN",
     },
     {
-      userId: staffId,
-      organizationId: org1Id,
-      role: "STAFF",
-    },
-    {
       userId: ownerId,
       organizationId: org2Id,
       role: "OWNER",
+    },
+    {
+      userId: managerId,
+      organizationId: org2Id,
+      role: "ADMIN",
     },
   ]);
 
@@ -212,6 +203,8 @@ async function seed() {
   ]);
 
   // ==================== TENANT USERS ====================
+  // Role: STORE_MANAGER | CASHIER | COOK
+  // Sekarang punya auditColumns (createdBy, updatedBy)
   console.log("👨‍💼 Seeding tenant users...");
 
   await db.insert(schema.tenantUsers).values([
@@ -250,12 +243,20 @@ async function seed() {
       createdBy: ownerId,
       updatedBy: ownerId,
     },
+    {
+      userId: cookId,
+      tenantId: tenant3Id,
+      role: "COOK",
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
   ]);
 
   // ==================== TENANT WORK HOURS ====================
   console.log("🕐 Seeding tenant work hours...");
 
   const workHours = [];
+
   // Tenant 1 - buka setiap hari (1-7, Senin-Minggu)
   for (let day = 1; day <= 7; day++) {
     workHours.push({
@@ -300,14 +301,372 @@ async function seed() {
 
   await db.insert(schema.tenantWorkHours).values(workHours);
 
-  // ==================== MENU CATEGORIES ====================
-  console.log("📋 Seeding menu categories...");
+  // ==================== ORGANIZATION MENU CATEGORIES ====================
+  // Kategori di level organisasi (baru di schema ini)
+  console.log("📋 Seeding organization menu categories...");
 
-  const cat1Id = crypto.randomUUID();
-  const cat2Id = crypto.randomUUID();
-  const cat3Id = crypto.randomUUID();
-  const cat4Id = crypto.randomUUID();
-  const cat5Id = crypto.randomUUID();
+  const orgCat1Id = crypto.randomUUID(); // Makanan Utama - Org 1
+  const orgCat2Id = crypto.randomUUID(); // Minuman - Org 1
+  const orgCat3Id = crypto.randomUUID(); // Dessert - Org 1
+  const orgCat4Id = crypto.randomUUID(); // Kopi - Org 2
+  const orgCat5Id = crypto.randomUUID(); // Non-Kopi - Org 2
+
+  await db.insert(schema.organizationMenuCategories).values([
+    // Org 1 categories
+    {
+      id: orgCat1Id,
+      categoryName: "Makanan Utama",
+      organizationId: org1Id,
+      orderNumber: 1,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgCat2Id,
+      categoryName: "Minuman",
+      organizationId: org1Id,
+      orderNumber: 2,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgCat3Id,
+      categoryName: "Dessert",
+      organizationId: org1Id,
+      orderNumber: 3,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Org 2 categories
+    {
+      id: orgCat4Id,
+      categoryName: "Kopi",
+      organizationId: org2Id,
+      orderNumber: 1,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgCat5Id,
+      categoryName: "Non-Kopi",
+      organizationId: org2Id,
+      orderNumber: 2,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+  ]);
+
+  // ==================== ORGANIZATION MENUS ====================
+  // Menu di level organisasi (baru di schema ini)
+  console.log("🍽️ Seeding organization menus...");
+
+  const orgMenu1Id = crypto.randomUUID(); // Nasi Goreng Spesial
+  const orgMenu2Id = crypto.randomUUID(); // Mie Ayam Bakso
+  const orgMenu3Id = crypto.randomUUID(); // Ayam Bakar Madu
+  const orgMenu4Id = crypto.randomUUID(); // Es Teh Manis
+  const orgMenu5Id = crypto.randomUUID(); // Jus Alpukat
+  const orgMenu6Id = crypto.randomUUID(); // Es Krim Coklat
+  const orgMenu7Id = crypto.randomUUID(); // Americano
+  const orgMenu8Id = crypto.randomUUID(); // Matcha Latte
+
+  await db.insert(schema.organizationMenus).values([
+    // Makanan Utama - Org 1
+    {
+      id: orgMenu1Id,
+      organizationCategoryId: orgCat1Id,
+      organizationId: org1Id,
+      name: "Nasi Goreng Spesial",
+      description: "Nasi goreng dengan telur, ayam, dan sayuran segar",
+      imagePath: "/images/nasi-goreng.jpg",
+      price: 35000,
+      discount: 0,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgMenu2Id,
+      organizationCategoryId: orgCat1Id,
+      organizationId: org1Id,
+      name: "Mie Ayam Bakso",
+      description: "Mie ayam dengan bakso sapi pilihan dan kuah kaldu",
+      imagePath: "/images/mie-ayam.jpg",
+      price: 28000,
+      discount: 5000,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgMenu3Id,
+      organizationCategoryId: orgCat1Id,
+      organizationId: org1Id,
+      name: "Ayam Bakar Madu",
+      description: "Ayam bakar dengan bumbu madu dan rempah pilihan",
+      imagePath: "/images/ayam-bakar.jpg",
+      price: 45000,
+      discount: 0,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Minuman - Org 1
+    {
+      id: orgMenu4Id,
+      organizationCategoryId: orgCat2Id,
+      organizationId: org1Id,
+      name: "Es Teh Manis",
+      description: "Teh manis segar dengan es batu",
+      imagePath: "/images/es-teh.jpg",
+      price: 8000,
+      discount: 0,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgMenu5Id,
+      organizationCategoryId: orgCat2Id,
+      organizationId: org1Id,
+      name: "Jus Alpukat",
+      description: "Jus alpukat segar dengan susu dan madu",
+      imagePath: "/images/jus-alpukat.jpg",
+      price: 18000,
+      discount: 0,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Dessert - Org 1
+    {
+      id: orgMenu6Id,
+      organizationCategoryId: orgCat3Id,
+      organizationId: org1Id,
+      name: "Es Krim Coklat",
+      description: "Es krim coklat premium dengan topping sprinkle",
+      imagePath: "/images/es-krim.jpg",
+      price: 22000,
+      discount: 2000,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Kopi - Org 2
+    {
+      id: orgMenu7Id,
+      organizationCategoryId: orgCat4Id,
+      organizationId: org2Id,
+      name: "Americano",
+      description: "Espresso dengan air panas, rasa kopi yang kuat",
+      imagePath: "/images/americano.jpg",
+      price: 25000,
+      discount: 0,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Non-Kopi - Org 2
+    {
+      id: orgMenu8Id,
+      organizationCategoryId: orgCat5Id,
+      organizationId: org2Id,
+      name: "Matcha Latte",
+      description: "Matcha premium dengan susu oat yang creamy",
+      imagePath: "/images/matcha-latte.jpg",
+      price: 32000,
+      discount: 0,
+      isAvailable: true,
+      isActive: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+  ]);
+
+  // ==================== ORGANIZATION ADDON GROUPS ====================
+  console.log("➕ Seeding organization addon groups...");
+
+  const orgAddonGroup1Id = crypto.randomUUID(); // Pilihan Protein - Nasi Goreng
+  const orgAddonGroup2Id = crypto.randomUUID(); // Tingkat Kepedasan - Nasi Goreng
+  const orgAddonGroup3Id = crypto.randomUUID(); // Pilihan Susu - Americano
+  const orgAddonGroup4Id = crypto.randomUUID(); // Ukuran - Americano
+
+  await db.insert(schema.organizationAddonGroups).values([
+    {
+      id: orgAddonGroup1Id,
+      organizationMenuId: orgMenu1Id,
+      name: "Pilihan Protein",
+      isRequired: true,
+      maxSelection: 1,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgAddonGroup2Id,
+      organizationMenuId: orgMenu1Id,
+      name: "Tingkat Kepedasan",
+      isRequired: false,
+      maxSelection: 1,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgAddonGroup3Id,
+      organizationMenuId: orgMenu7Id,
+      name: "Pilihan Susu",
+      isRequired: false,
+      maxSelection: 1,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: orgAddonGroup4Id,
+      organizationMenuId: orgMenu7Id,
+      name: "Ukuran",
+      isRequired: true,
+      maxSelection: 1,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+  ]);
+
+  // ==================== ORGANIZATION ADDONS ====================
+  console.log("🧩 Seeding organization addons...");
+
+  await db.insert(schema.organizationAddons).values([
+    // Pilihan Protein - Nasi Goreng
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup1Id,
+      name: "Ayam",
+      price: 0,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup1Id,
+      name: "Udang",
+      price: 8000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup1Id,
+      name: "Sapi",
+      price: 10000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Tingkat Kepedasan - Nasi Goreng
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup2Id,
+      name: "Tidak Pedas",
+      price: 0,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup2Id,
+      name: "Pedas Sedang",
+      price: 0,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup2Id,
+      name: "Pedas Banget",
+      price: 0,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Pilihan Susu - Americano
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup3Id,
+      name: "Susu Sapi",
+      price: 5000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup3Id,
+      name: "Susu Oat",
+      price: 8000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup3Id,
+      name: "Susu Almond",
+      price: 10000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    // Ukuran - Americano
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup4Id,
+      name: "Small",
+      price: 0,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup4Id,
+      name: "Medium",
+      price: 5000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationAddonGroupId: orgAddonGroup4Id,
+      name: "Large",
+      price: 10000,
+      isAvailable: true,
+      createdBy: ownerId,
+      updatedBy: ownerId,
+    },
+  ]);
+
+  // ==================== MENU CATEGORIES (Tenant Level) ====================
+  console.log("📋 Seeding tenant menu categories...");
+
+  const cat1Id = crypto.randomUUID(); // Makanan Utama - Tenant 1
+  const cat2Id = crypto.randomUUID(); // Minuman - Tenant 1
+  const cat3Id = crypto.randomUUID(); // Dessert - Tenant 1
+  const cat4Id = crypto.randomUUID(); // Kopi - Tenant 3
+  const cat5Id = crypto.randomUUID(); // Non-Kopi - Tenant 3
 
   await db.insert(schema.menuCategories).values([
     // Tenant 1 categories
@@ -359,8 +718,8 @@ async function seed() {
     },
   ]);
 
-  // ==================== MENUS ====================
-  console.log("🍽️ Seeding menus...");
+  // ==================== MENUS (Tenant Level) ====================
+  console.log("🍽️ Seeding tenant menus...");
 
   const menu1Id = crypto.randomUUID();
   const menu2Id = crypto.randomUUID();
@@ -491,8 +850,8 @@ async function seed() {
     },
   ]);
 
-  // ==================== ADDON GROUPS ====================
-  console.log("➕ Seeding addon groups...");
+  // ==================== ADDON GROUPS (Tenant Level) ====================
+  console.log("➕ Seeding tenant addon groups...");
 
   const addonGroup1Id = crypto.randomUUID();
   const addonGroup2Id = crypto.randomUUID();
@@ -538,8 +897,8 @@ async function seed() {
     },
   ]);
 
-  // ==================== ADDONS ====================
-  console.log("🧩 Seeding addons...");
+  // ==================== ADDONS (Tenant Level) ====================
+  console.log("🧩 Seeding tenant addons...");
 
   await db.insert(schema.addons).values([
     // Pilihan Protein - Nasi Goreng
@@ -657,6 +1016,7 @@ async function seed() {
   ]);
 
   // ==================== TABLES ====================
+  // Sekarang punya auditColumns (createdBy, updatedBy)
   console.log("🪑 Seeding tables...");
 
   const tableIds = [];
@@ -698,7 +1058,6 @@ async function seed() {
   const session1Id = crypto.randomUUID();
   const session2Id = crypto.randomUUID();
 
-  // Ambil beberapa table id untuk tenant 1
   const tenant1Tables = tableIds.filter((t) => t.tenantId === tenant1Id);
   const tenant3Tables = tableIds.filter((t) => t.tenantId === tenant3Id);
 

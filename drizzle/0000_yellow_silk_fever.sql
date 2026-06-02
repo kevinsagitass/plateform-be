@@ -76,10 +76,68 @@ CREATE TABLE `orders` (
 	CONSTRAINT `orders_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
+CREATE TABLE `organization_addon_groups` (
+	`id` varchar(36) NOT NULL,
+	`organization_menu_id` varchar(36) NOT NULL,
+	`name` varchar(255) NOT NULL,
+	`is_required` boolean NOT NULL DEFAULT false,
+	`max_selection` int NOT NULL DEFAULT 1,
+	`created_at` timestamp NOT NULL DEFAULT (now()),
+	`created_by` varchar(36) NOT NULL,
+	`updated_at` timestamp DEFAULT (now()),
+	`updated_by` varchar(36),
+	CONSTRAINT `organization_addon_groups_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `organization_addons` (
+	`id` varchar(36) NOT NULL,
+	`organization_addon_group_id` varchar(36) NOT NULL,
+	`name` varchar(255) NOT NULL,
+	`price` double NOT NULL DEFAULT 0,
+	`is_available` boolean NOT NULL DEFAULT true,
+	`created_at` timestamp NOT NULL DEFAULT (now()),
+	`created_by` varchar(36) NOT NULL,
+	`updated_at` timestamp DEFAULT (now()),
+	`updated_by` varchar(36),
+	CONSTRAINT `organization_addons_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `organization_menu_categories` (
+	`id` varchar(36) NOT NULL,
+	`category_name` varchar(255) NOT NULL,
+	`organization_id` varchar(36) NOT NULL,
+	`order_number` int NOT NULL,
+	`is_active` boolean NOT NULL DEFAULT true,
+	`created_at` timestamp NOT NULL DEFAULT (now()),
+	`created_by` varchar(36) NOT NULL,
+	`updated_at` timestamp DEFAULT (now()),
+	`updated_by` varchar(36),
+	CONSTRAINT `organization_menu_categories_id` PRIMARY KEY(`id`),
+	CONSTRAINT `organization_order_unique` UNIQUE(`organization_id`,`order_number`)
+);
+--> statement-breakpoint
+CREATE TABLE `organization_menus` (
+	`id` varchar(36) NOT NULL,
+	`organization_category_id` varchar(36) NOT NULL,
+	`organization_id` varchar(36) NOT NULL,
+	`name` varchar(255) NOT NULL,
+	`description` varchar(255) NOT NULL,
+	`image_path` varchar(255) NOT NULL,
+	`price` double NOT NULL,
+	`discount` double NOT NULL,
+	`is_available` boolean NOT NULL DEFAULT true,
+	`is_active` boolean NOT NULL DEFAULT true,
+	`created_at` timestamp NOT NULL DEFAULT (now()),
+	`created_by` varchar(36) NOT NULL,
+	`updated_at` timestamp DEFAULT (now()),
+	`updated_by` varchar(36),
+	CONSTRAINT `organization_menus_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
 CREATE TABLE `organization_users` (
 	`user_id` varchar(36) NOT NULL,
 	`organization_id` varchar(36) NOT NULL,
-	`role` enum('OWNER','ADMIN','STAFF') NOT NULL,
+	`role` enum('OWNER','ADMIN') NOT NULL,
 	`created_at` timestamp DEFAULT (now())
 );
 --> statement-breakpoint
@@ -203,6 +261,16 @@ ALTER TABLE `menus` ADD CONSTRAINT `menus_updated_by_users_id_fk` FOREIGN KEY (`
 ALTER TABLE `order_items` ADD CONSTRAINT `order_items_order_id_orders_id_fk` FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `order_items` ADD CONSTRAINT `order_items_menu_id_menus_id_fk` FOREIGN KEY (`menu_id`) REFERENCES `menus`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `orders` ADD CONSTRAINT `orders_session_id_sessions_id_fk` FOREIGN KEY (`session_id`) REFERENCES `sessions`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_addon_groups` ADD CONSTRAINT `organization_addon_groups_created_by_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_addon_groups` ADD CONSTRAINT `organization_addon_groups_updated_by_users_id_fk` FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_addons` ADD CONSTRAINT `organization_addons_created_by_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_addons` ADD CONSTRAINT `organization_addons_updated_by_users_id_fk` FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_menu_categories` ADD CONSTRAINT `organization_menu_categories_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_menu_categories` ADD CONSTRAINT `organization_menu_categories_created_by_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_menu_categories` ADD CONSTRAINT `organization_menu_categories_updated_by_users_id_fk` FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_menus` ADD CONSTRAINT `organization_menus_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_menus` ADD CONSTRAINT `organization_menus_created_by_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE `organization_menus` ADD CONSTRAINT `organization_menus_updated_by_users_id_fk` FOREIGN KEY (`updated_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `organization_users` ADD CONSTRAINT `organization_users_user_id_users_id_fk` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `organization_users` ADD CONSTRAINT `organization_users_organization_id_organizations_id_fk` FOREIGN KEY (`organization_id`) REFERENCES `organizations`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `organizations` ADD CONSTRAINT `organizations_created_by_users_id_fk` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE no action ON UPDATE no action;--> statement-breakpoint

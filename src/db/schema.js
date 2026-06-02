@@ -311,6 +311,10 @@ export const tables = mysqlTable("tables", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   number: int("number").notNull(),
+  qrToken: varchar("qr_token", { length: 64 })
+    .notNull()
+    .$defaultFn(() => crypto.randomBytes(32).toString("hex")),
+  isActive: boolean("is_active").notNull().default(true),
   tenantId: varchar("tenant_id", { length: 36 })
     .notNull()
     .references(() => tenants.id, {

@@ -5,7 +5,7 @@ import {
   tenantUsers,
   users,
 } from "../db/schema.js";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { generateInviteToken } from "../helpers/inviteToken.helper.js";
 import { sendInviteEmail } from "../helpers/sendOrganizationInviteMail.js";
 
@@ -219,6 +219,70 @@ export const getAllTenantUsersRoleData = async (id) => {
       .where(eq(tenantUsers.tenantId, id));
 
     return tenantUsersRoleData;
+  } catch (err) {
+    console.log(err);
+    throw {
+      message: err.message,
+    };
+  }
+};
+
+export const updateTenantUserAccessData = async (data) => {
+  try {
+    const lastRole = await db
+      .select()
+      .from(tenantUsers)
+      .where(
+        and(
+          eq(tenantUsers.tenantId, data.tenantId),
+          eq(tenantUsers.userId, data.userId),
+          eq(tenantUsers.role, data.oldRole)
+        )
+      );
+
+    if (!lastRole) {
+      throw {
+        status: 400,
+        dataStatus: "failed",
+        message: "User dengan Role tersebut tidak ditemukan",
+      };
+    }
+
+    await db
+      .update(tenantUsers)
+      .set({
+        role: data.newRole,
+      })
+      .where(
+        and(
+          eq(tenantUsers.tenantId, data.tenantId),
+          eq(tenantUsers.userId, data.userId),
+          eq(tenantUsers.role, data.oldRole)
+        )
+      );
+
+    return lastRole;
+  } catch (err) {
+    console.log(err);
+    throw {
+      message: err.message,
+    };
+  }
+};
+
+export const removeTenantUserAccessData = async (data) => {
+  try {
+    const result = await db
+      .delete(tenantUsers)
+      .where(
+        and(
+          eq(tenantUsers.tenantId, data.tenantId),
+          eq(tenantUsers.userId, data.userId),
+          eq(tenantUsers.role, data.role)
+        )
+      );
+
+    return result;
   } catch (err) {
     console.log(err);
     throw {

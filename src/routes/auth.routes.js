@@ -12,7 +12,7 @@ router.post("/login", (req, res, next) => {
     if (err) return next(err);
 
     if (!user) {
-      return res.status(401).json({
+      return res.status(400).json({
         dataStatus: "failed",
         message: info?.message || "Login gagal",
       });

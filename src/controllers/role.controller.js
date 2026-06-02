@@ -2,12 +2,16 @@ import { successResponse } from "../helpers/response.helper.js";
 import {
   inviteOrganizationMemberSchema,
   removeOrganizationUserAccessSchema,
+  removeTenantUserAccessSchema,
+  updateTenantUserAccessSchema,
 } from "../schemas/role.schema.js";
 import {
   getAllOrganizationUsersRoleData,
   getAllTenantUsersRoleData,
   inviteOrganizationMemberData,
   removeOrganizationUserAccessData,
+  removeTenantUserAccessData,
+  updateTenantUserAccessData,
 } from "../services/role.service.js";
 
 // ===== ORGANIZATION ROLES =====
@@ -83,7 +87,6 @@ export const removeOrganizationUserAccess = async (req, res) => {
   }
 };
 
-
 // ===== TENANT ROLES =====
 
 export const getAllTenantUsersRole = async (req, res) => {
@@ -94,5 +97,68 @@ export const getAllTenantUsersRole = async (req, res) => {
     return successResponse(res, 200, "success", userTenants);
   } catch (err) {
     throw err;
+  }
+};
+
+export const updateTenantUserAccess = async (req, res) => {
+  try {
+    const updateParam = updateTenantUserAccessSchema.safeParse({
+      organizationId: req.params.organizationId,
+      tenantId: req.params.tenantId,
+      userId: req.params.userId,
+      oldRole: req.params.role,
+      newRole: req.body.newRole,
+    });
+
+    if (!updateParam.success) {
+      throw {
+        status: 400,
+        dataStatus: "failed",
+        message: updateParam.error.issues[0].message,
+        errors: updateParam.error.issues.map((e) => ({
+          field: e.path[0],
+          message: e.message,
+        })),
+      };
+    }
+
+    const result = await updateTenantUserAccessData({
+      ...updateParam.data,
+    });
+
+    return successResponse(res, 200, "success", result);
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const removeTenantUserAccess = async (req, res) => {
+  try {
+    const removeParam = removeTenantUserAccessSchema.safeParse({
+      organizationId: req.params.organizationId,
+      tenantId: req.params.tenantId,
+      userId: req.params.userId,
+      role: req.params.role,
+    });
+
+    if (!removeParam.success) {
+      throw {
+        status: 400,
+        dataStatus: "failed",
+        message: removeParam.error.issues[0].message,
+        errors: removeParam.error.issues.map((e) => ({
+          field: e.path[0],
+          message: e.message,
+        })),
+      };
+    }
+
+    const result = await removeTenantUserAccessData({
+      ...removeParam.data,
+    });
+
+    return successResponse(res, 200, "success", result);
+  } catch (error) {
+    throw error;
   }
 };

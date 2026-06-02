@@ -11,3 +11,18 @@ export const removeOrganizationUserAccessSchema = z.object({
   userId: z.string(),
   role: z.enum(["ADMIN"]),
 });
+
+export const updateTenantUserAccessSchema = z.object({
+  organizationId: z.string(),
+  tenantId: z.string(),
+  userId: z.string(),
+  oldRole: z.enum(["STORE_MANAGER", "CASHIER", "COOK"]),
+  newRole: z.enum(["STORE_MANAGER", "CASHIER", "COOK"]),
+});
+
+export const removeTenantUserAccessSchema = z.object({
+  organizationId: z.string(),
+  tenantId: z.string(),
+  userId: z.string(),
+  role: z.enum(["CASHIER", "COOK"]),
+});
